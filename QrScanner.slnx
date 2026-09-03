@@ -1,0 +1,10 @@
+﻿<Solution>
+  <Project Path="QrScanner.Android/QrScanner.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="QrScanner.Desktop/QrScanner.Desktop.csproj" />
+  <Project Path="QrScanner.iOS/QrScanner.iOS.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="QrScanner/QrScanner.csproj" />
+</Solution>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Requires the "Hotspot Configuration" capability enabled for this App ID in the Apple Developer
+	portal (https://developer.apple.com/account) before this entitlement will actually work, and the
+	provisioning profile must be regenerated/re-downloaded afterwards.
+	-->
+	<key>com.apple.developer.networking.HotspotConfiguration</key>
+	<true/>
+</dict>
+</plist>

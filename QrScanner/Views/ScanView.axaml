@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="700"
+             x:Class="QrScanner.Views.ScanView"
+             x:DataType="vm:ScanViewModel">
+    <Grid RowDefinitions="*,*">
+        <ContentControl Grid.Row="0" Content="{Binding PreviewControl}" />
+
+        <Grid Grid.Row="1" Background="{DynamicResource SystemAltHighColor}">
+            <Grid RowDefinitions="Auto,*,Auto" Margin="16,16,16,88">
+                <TextBlock Grid.Row="0" Text="{Binding StatusMessage}" Opacity="0.7" IsVisible="{Binding !HasResult}" />
+
+                <TextBox Grid.Row="1"
+                         Text="{Binding ResultText}"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalContentAlignment="Top"
+                         IsVisible="{Binding HasResult}" />
+
+                <StackPanel Grid.Row="2" Spacing="4">
+                    <TextBlock Text="{Binding WifiSsid, StringFormat='Network: {0}'}"
+                               IsVisible="{Binding IsWifiResult}"
+                               Margin="0,8,0,0" />
+                    <Button Content="Connect to Wi-Fi"
+                            IsVisible="{Binding IsWifiResult}"
+                            IsEnabled="{Binding IsWifiConnectSupported}"
+                            Command="{Binding ConnectWifiCommand}"
+                            ToolTip.Tip="Not supported on this platform"
+                            HorizontalAlignment="Left" />
+                    <Button Content="{Binding ActionLabel}"
+                            IsVisible="{Binding CanOpenAction}"
+                            Command="{Binding OpenLinkCommand}"
+                            CommandParameter="{Binding $parent[TopLevel]}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Grid>
+
+            <Button Command="{Binding CopyTextCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}"
+                    IsVisible="{Binding HasResult}"
+                    Width="56" Height="56"
+                    CornerRadius="28"
+                    Padding="0"
+                    Background="{DynamicResource SystemAccentColor}"
+                    Foreground="White"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Margin="16"
+                    ToolTip.Tip="Copy text">
+                <lucide:LucideIcon Kind="Copy" Size="24" />
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>
