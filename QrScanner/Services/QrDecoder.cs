@@ -14,6 +14,7 @@ public static class QrDecoder
         Options = new DecodingOptions
         {
             TryHarder = true,
+            TryInverted = true,
             PossibleFormats = [BarcodeFormat.QR_CODE]
         }
     };

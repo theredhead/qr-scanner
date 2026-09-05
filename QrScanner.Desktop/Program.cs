@@ -14,6 +14,20 @@ sealed class Program
     public static void Main(string[] args)
     {
         PlatformServices.CameraFactory = () => new DesktopCameraScanService();
+
+        if (args.Length > 0 && System.IO.File.Exists(args[0]))
+        {
+            try
+            {
+                var bytes = System.IO.File.ReadAllBytes(args[0]);
+                ExternalImageHandler.HandleImage(bytes);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to read CLI image argument: {ex}");
+            }
+        }
+
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

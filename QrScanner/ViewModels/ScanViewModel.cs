@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QrScanner.Models;
 using QrScanner.Services;
+using SkiaSharp;
 
 namespace QrScanner.ViewModels;
 
@@ -147,6 +148,82 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
             StatusMessage = "Scanned!";
             ResultImage = new Bitmap(new MemoryStream(e.JpegImage));
         });
+    }
+
+    public async Task<bool> ScanImageAsync(byte[] imageBytes)
+    {
+        try
+        {
+            using var bitmap = SKBitmap.Decode(imageBytes);
+            if (bitmap is null)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = "Could not read the shared image.";
+                    HasResult = false;
+                });
+                return false;
+            }
+
+            var rawText = QrDecoder.TryDecode(bitmap);
+            if (string.IsNullOrEmpty(rawText))
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    StatusMessage = "No QR code found in shared image.";
+                    HasResult = false;
+                });
+                return false;
+            }
+
+            byte[] jpegBytes;
+            using (var image = SKImage.FromBitmap(bitmap))
+            using (var data = image.Encode(SKEncodedImageFormat.Jpeg, 85))
+            {
+                jpegBytes = data.ToArray();
+            }
+
+            _lastRawText = rawText;
+            _lastDetectedAtUtc = DateTime.UtcNow;
+            _parsed = QrContentParser.Parse(rawText);
+
+            var fileName = $"{Guid.NewGuid():N}.jpg";
+            var path = Path.Combine(AppPaths.ImagesDirectory, fileName);
+            await File.WriteAllBytesAsync(path, jpegBytes).ConfigureAwait(false);
+
+            var record = new ScanRecord
+            {
+                ScannedAtUtc = DateTime.UtcNow,
+                RawText = rawText,
+                Kind = _parsed.Kind,
+                ImageFileName = fileName
+            };
+            await _db.InsertAsync(record).ConfigureAwait(false);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                ResultText = _parsed.DisplayText;
+                ActionLabel = _parsed.ActionLabel;
+                CanOpenAction = _parsed.ActionUri is not null;
+                IsWifiResult = _parsed.Wifi is not null;
+                WifiSsid = _parsed.Wifi?.Ssid;
+                HasResult = true;
+                StatusMessage = "Scanned shared image!";
+                ResultImage?.Dispose();
+                ResultImage = new Bitmap(new MemoryStream(jpegBytes));
+            });
+
+            return true;
+        }
+        catch
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                StatusMessage = "Failed to process shared image.";
+                HasResult = false;
+            });
+            return false;
+        }
     }
 
     [RelayCommand]

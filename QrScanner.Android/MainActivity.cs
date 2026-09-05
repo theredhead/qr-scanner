@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Window;
@@ -12,11 +14,25 @@ using QrScanner.Views;
 namespace QrScanner.Android;
 
 [Activity(
-    Label = "QrScanner.Android",
+    Label = "QR Scanner",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,
+    LaunchMode = LaunchMode.SingleTop,
+    Exported = true,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
+[IntentFilter(
+    [Intent.ActionSend],
+    Categories = [Intent.CategoryDefault],
+    DataMimeType = "image/*")]
+[IntentFilter(
+    [Intent.ActionSendMultiple],
+    Categories = [Intent.CategoryDefault],
+    DataMimeType = "image/*")]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataMimeType = "image/*")]
 public class MainActivity : AvaloniaMainActivity
 {
     private BackCallback? _backCallback;
@@ -34,6 +50,74 @@ public class MainActivity : AvaloniaMainActivity
             OnBackInvokedDispatcher.RegisterOnBackInvokedCallback(
                 IOnBackInvokedDispatcher.PriorityDefault,
                 _backCallback);
+        }
+
+        if (Intent is not null)
+        {
+            HandleIntent(Intent);
+        }
+    }
+
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        Intent = intent;
+        if (intent is not null)
+        {
+            HandleIntent(intent);
+        }
+    }
+
+    private void HandleIntent(Intent intent)
+    {
+        var action = intent.Action;
+        if (action == Intent.ActionSend)
+        {
+            var uri = (intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri)
+                      ?? intent.ClipData?.GetItemAt(0)?.Uri
+                      ?? intent.Data;
+
+            if (uri is not null)
+            {
+                ReadAndProcessImageUri(uri);
+            }
+        }
+        else if (action == Intent.ActionSendMultiple)
+        {
+            var uris = intent.GetParcelableArrayListExtra(Intent.ExtraStream);
+            if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uri)
+            {
+                ReadAndProcessImageUri(uri);
+            }
+        }
+        else if (action == Intent.ActionView)
+        {
+            if (intent.Data is { } uri)
+            {
+                ReadAndProcessImageUri(uri);
+            }
+        }
+    }
+
+    private void ReadAndProcessImageUri(global::Android.Net.Uri uri)
+    {
+        try
+        {
+            using var stream = ContentResolver?.OpenInputStream(uri);
+            if (stream is not null)
+            {
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                var bytes = ms.ToArray();
+                if (bytes.Length > 0)
+                {
+                    ExternalImageHandler.HandleImage(bytes);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to read shared image URI: {ex}");
         }
     }
 

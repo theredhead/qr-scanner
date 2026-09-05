@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using QrScanner.Services;
 
@@ -25,7 +27,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         History = new HistoryViewModel(db);
         About = new AboutViewModel(History);
 
+        ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
         UpdateCameraState();
+    }
+
+    public async Task ProcessSharedImageAsync(byte[] imageBytes)
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            IsAboutVisible = false;
+            SelectedTabIndex = 0;
+        });
+
+        await Scan.ScanImageAsync(imageBytes).ConfigureAwait(false);
     }
 
     partial void OnSelectedTabIndexChanged(int value)
@@ -87,5 +101,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         return false;
     }
 
-    public void Dispose() => Scan.Dispose();
+    public void Dispose()
+    {
+        ExternalImageHandler.UnregisterReceiver(ProcessSharedImageAsync);
+        Scan.Dispose();
+    }
 }

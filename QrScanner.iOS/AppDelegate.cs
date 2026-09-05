@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Foundation;
 using UIKit;
 using Avalonia;
@@ -25,5 +27,40 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
 
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();
+    }
+
+    public override bool OpenUrl(UIApplication app, NSUrl url, NSDictionary options)
+    {
+        if (url is not null)
+        {
+            try
+            {
+                var shouldStopAccessing = url.StartAccessingSecurityScopedResource();
+                try
+                {
+                    var path = url.Path;
+                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    {
+                        var bytes = File.ReadAllBytes(path);
+                        if (bytes.Length > 0)
+                        {
+                            ExternalImageHandler.HandleImage(bytes);
+                            return true;
+                        }
+                    }
+                }
+                finally
+                {
+                    if (shouldStopAccessing)
+                        url.StopAccessingSecurityScopedResource();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to open shared image URL: {ex}");
+            }
+        }
+
+        return base.OpenUrl(app, url, options);
     }
 }
