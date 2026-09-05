@@ -20,6 +20,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial ScanResultViewModel? CurrentResult { get; set; }
 
+    public bool IsResultVisible => CurrentResult is not null;
+
     [ObservableProperty]
     public partial int SelectedTabIndex { get; set; }
 
@@ -131,6 +133,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     partial void OnCurrentResultChanged(ScanResultViewModel? value)
     {
+        OnPropertyChanged(nameof(IsResultVisible));
         UpdateCameraState();
     }
 

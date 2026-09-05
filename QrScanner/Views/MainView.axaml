@@ -13,9 +13,9 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <Grid>
+    <Panel>
         <!-- Main Tabs (Scan & History) -->
-        <Grid IsVisible="{Binding CurrentResult, Converter={x:Static ObjectConverters.IsNull}}">
+        <Grid IsVisible="{Binding !IsResultVisible}">
             <Grid IsVisible="{Binding !IsAboutVisible}">
                 <TabControl SelectedIndex="{Binding SelectedTabIndex}">
                     <TabItem Header="Scan">
@@ -54,9 +54,15 @@
         </Grid>
 
         <!-- Scanned Result Page (Success or Failure) -->
-        <Grid IsVisible="{Binding CurrentResult, Converter={x:Static ObjectConverters.IsNotNull}}"
+        <Grid IsVisible="{Binding IsResultVisible}"
               Background="{DynamicResource SystemAltHighColor}">
-            <views:ScanResultView DataContext="{Binding CurrentResult}" />
+            <ContentControl Content="{Binding CurrentResult}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate DataType="vm:ScanResultViewModel">
+                        <views:ScanResultView />
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
         </Grid>
-    </Grid>
+    </Panel>
 </UserControl>
