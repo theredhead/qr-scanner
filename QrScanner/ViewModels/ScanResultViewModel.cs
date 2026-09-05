@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QrScanner.Models;
 using QrScanner.Services;
+using SkiaSharp;
 
 namespace QrScanner.ViewModels;
 
@@ -73,7 +74,24 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
         Action? onDismiss)
     {
         var parsed = QrContentParser.Parse(rawText);
-        var bitmap = new Bitmap(new MemoryStream(jpegBytes));
+        Bitmap? bitmap = null;
+
+        try
+        {
+            if (jpegBytes is { Length: > 0 })
+            {
+                bitmap = new Bitmap(new MemoryStream(jpegBytes));
+            }
+            else if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            {
+                bitmap = new Bitmap(imagePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load bitmap in CreateSuccess: {ex}");
+        }
+
         return new ScanResultViewModel(
             isSuccess: true,
             errorMessage: null,
@@ -98,7 +116,20 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             }
             catch
             {
-                // Ignore image decode errors
+                try
+                {
+                    using var skBitmap = SKBitmap.Decode(imageBytes);
+                    if (skBitmap is not null)
+                    {
+                        using var image = SKImage.FromBitmap(skBitmap);
+                        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 85);
+                        bitmap = new Bitmap(new MemoryStream(data.ToArray()));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load fallback bitmap in CreateFailure: {ex}");
+                }
             }
         }
 

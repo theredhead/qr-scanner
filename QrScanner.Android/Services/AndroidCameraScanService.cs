@@ -85,6 +85,13 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         try
         {
             var previewView = GetOrCreatePreviewView();
+            _activity.RunOnUiThread(() =>
+            {
+                if (previewView.Handle != IntPtr.Zero)
+                {
+                    previewView.Visibility = global::Android.Views.ViewStates.Visible;
+                }
+            });
 
             var future = ProcessCameraProvider.GetInstance(_activity);
             _cameraProvider = await AwaitFutureAsync(future, _activity).ConfigureAwait(true);
@@ -92,6 +99,13 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             if (!_shouldBeRunning)
             {
                 _cameraProvider?.UnbindAll();
+                _activity.RunOnUiThread(() =>
+                {
+                    if (previewView.Handle != IntPtr.Zero)
+                    {
+                        previewView.Visibility = global::Android.Views.ViewStates.Gone;
+                    }
+                });
                 return;
             }
 
@@ -117,6 +131,13 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     public Task StopAsync()
     {
         _shouldBeRunning = false;
+        _activity.RunOnUiThread(() =>
+        {
+            if (_previewView is not null && _previewView.Handle != IntPtr.Zero)
+            {
+                _previewView.Visibility = global::Android.Views.ViewStates.Gone;
+            }
+        });
         _cameraProvider?.UnbindAll();
         return Task.CompletedTask;
     }
