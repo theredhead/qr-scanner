@@ -87,7 +87,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             var previewView = GetOrCreatePreviewView();
 
             var future = ProcessCameraProvider.GetInstance(_activity);
-            _cameraProvider = await AwaitFutureAsync(future).ConfigureAwait(true);
+            _cameraProvider = await AwaitFutureAsync(future, _activity).ConfigureAwait(true);
 
             if (!_shouldBeRunning)
             {
@@ -217,7 +217,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         return bitmap;
     }
 
-    private static Task<ProcessCameraProvider> AwaitFutureAsync(IListenableFuture future)
+    private static Task<ProcessCameraProvider> AwaitFutureAsync(IListenableFuture future, Activity activity)
     {
         var tcs = new TaskCompletionSource<ProcessCameraProvider>();
         future.AddListener(new Runnable(() =>
@@ -231,7 +231,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             {
                 tcs.TrySetException(ex);
             }
-        }), ContextCompat.GetMainExecutor(_activity));
+        }), ContextCompat.GetMainExecutor(activity));
         return tcs.Task;
     }
 
@@ -246,5 +246,24 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             _previewView = null;
         }
         base.Dispose(disposing);
+    }
+
+    /// <summary>Hosts the CameraX <see cref="PreviewView"/> inside the Avalonia visual tree.</summary>
+    private sealed class AndroidPreviewHost : NativeControlHost
+    {
+        private readonly Func<global::Android.Views.View> _viewProvider;
+
+        public AndroidPreviewHost(Func<global::Android.Views.View> viewProvider) => _viewProvider = viewProvider;
+
+        protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
+        {
+            Log.Info("QrScanner", "AndroidPreviewHost.CreateNativeControlCore called - attaching PreviewView.");
+            return new global::Avalonia.Android.AndroidViewControlHandle(_viewProvider());
+        }
+
+        protected override void DestroyNativeControlCore(IPlatformHandle control)
+        {
+            // The PreviewView's lifetime is owned by AndroidCameraScanService, not by this host.
+        }
     }
 }
