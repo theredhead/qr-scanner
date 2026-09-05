@@ -14,6 +14,17 @@ public static class ExternalImageHandler
     private static readonly object SyncLock = new();
     private static Func<byte[], Task>? _receiver;
 
+    public static bool HasPendingImages
+    {
+        get
+        {
+            lock (SyncLock)
+            {
+                return PendingImages.Count > 0;
+            }
+        }
+    }
+
     public static void HandleImage(byte[] imageBytes)
     {
         if (imageBytes is null || imageBytes.Length == 0)

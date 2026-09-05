@@ -1,18 +1,24 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using QrScanner.Models;
 using QrScanner.Services;
 
 namespace QrScanner.ViewModels;
 
 public partial class MainViewModel : ViewModelBase, IDisposable
 {
+    private readonly IDatabaseService _db;
+
     public ScanViewModel Scan { get; }
-
     public HistoryViewModel History { get; }
-
     public AboutViewModel About { get; }
+
+    [ObservableProperty]
+    public partial ScanResultViewModel? CurrentResult { get; set; }
 
     [ObservableProperty]
     public partial int SelectedTabIndex { get; set; }
@@ -22,12 +28,27 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public MainViewModel()
     {
-        var db = new DatabaseService();
-        Scan = new ScanViewModel(db);
-        History = new HistoryViewModel(db);
+        _db = new DatabaseService();
+        Scan = new ScanViewModel(_db, OnLiveScanCompleted);
+        History = new HistoryViewModel(_db);
         About = new AboutViewModel(History);
 
         ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
+
+        if (!ExternalImageHandler.HasPendingImages)
+        {
+            UpdateCameraState();
+        }
+    }
+
+    private void OnLiveScanCompleted(ScanRecord record, byte[] jpegBytes)
+    {
+        CurrentResult?.Dispose();
+        CurrentResult = ScanResultViewModel.CreateSuccess(
+            record.RawText,
+            jpegBytes,
+            record.ImagePath,
+            onDismiss: CloseResult);
         UpdateCameraState();
     }
 
@@ -37,9 +58,57 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             IsAboutVisible = false;
             SelectedTabIndex = 0;
+            _ = Scan.StopAsync();
         });
 
-        await Scan.ScanImageAsync(imageBytes).ConfigureAwait(false);
+        var (rawText, jpegBytes) = await Task.Run(() => QrDecoder.DecodeImageBytes(imageBytes)).ConfigureAwait(false);
+
+        if (!string.IsNullOrEmpty(rawText) && jpegBytes is not null)
+        {
+            var fileName = $"{Guid.NewGuid():N}.jpg";
+            var path = Path.Combine(AppPaths.ImagesDirectory, fileName);
+            await File.WriteAllBytesAsync(path, jpegBytes).ConfigureAwait(false);
+
+            var parsed = QrContentParser.Parse(rawText);
+            var record = new ScanRecord
+            {
+                ScannedAtUtc = DateTime.UtcNow,
+                RawText = rawText,
+                Kind = parsed.Kind,
+                ImageFileName = fileName
+            };
+            await _db.InsertAsync(record).ConfigureAwait(false);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                CurrentResult?.Dispose();
+                CurrentResult = ScanResultViewModel.CreateSuccess(
+                    rawText,
+                    jpegBytes,
+                    path,
+                    onDismiss: CloseResult);
+                UpdateCameraState();
+            });
+        }
+        else
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                CurrentResult?.Dispose();
+                CurrentResult = ScanResultViewModel.CreateFailure(
+                    imageBytes,
+                    "No QR code found in shared image",
+                    onDismiss: CloseResult);
+                UpdateCameraState();
+            });
+        }
+    }
+
+    private void CloseResult()
+    {
+        CurrentResult?.Dispose();
+        CurrentResult = null;
+        UpdateCameraState();
     }
 
     partial void OnSelectedTabIndexChanged(int value)
@@ -60,9 +129,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateCameraState();
     }
 
+    partial void OnCurrentResultChanged(ScanResultViewModel? value)
+    {
+        UpdateCameraState();
+    }
+
     private void UpdateCameraState()
     {
-        if (SelectedTabIndex == 0 && !IsAboutVisible)
+        if (SelectedTabIndex == 0 && !IsAboutVisible && CurrentResult == null && !ExternalImageHandler.HasPendingImages)
         {
             _ = Scan.StartAsync();
         }
@@ -72,10 +146,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     private void ShowAbout() => IsAboutVisible = true;
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     private void HideAbout() => IsAboutVisible = false;
 
     public bool TryNavigateBack()
@@ -83,6 +157,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (IsAboutVisible)
         {
             IsAboutVisible = false;
+            return true;
+        }
+
+        if (CurrentResult is not null)
+        {
+            CloseResult();
             return true;
         }
 
@@ -104,6 +184,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         ExternalImageHandler.UnregisterReceiver(ProcessSharedImageAsync);
+        CurrentResult?.Dispose();
         Scan.Dispose();
     }
 }

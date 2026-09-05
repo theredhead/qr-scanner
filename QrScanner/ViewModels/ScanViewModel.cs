@@ -2,60 +2,34 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Input.Platform;
-using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using QrScanner.Models;
 using QrScanner.Services;
-using SkiaSharp;
 
 namespace QrScanner.ViewModels;
 
-public partial class ScanViewModel : ViewModelBase, IDisposable
+public sealed partial class ScanViewModel : ViewModelBase, IDisposable
 {
     private readonly IDatabaseService _db;
     private readonly ICameraScanService? _camera;
+    private readonly Action<ScanRecord, byte[]> _onScanCompleted;
 
     private string? _lastRawText;
     private DateTime _lastDetectedAtUtc;
-    private ParsedQrContent? _parsed;
 
     [ObservableProperty]
     public partial Control? PreviewControl { get; set; }
-
-    [ObservableProperty]
-    public partial bool HasResult { get; set; }
-
-    [ObservableProperty]
-    public partial string ResultText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string? ActionLabel { get; set; }
-
-    [ObservableProperty]
-    public partial bool CanOpenAction { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsWifiResult { get; set; }
-
-    [ObservableProperty]
-    public partial string? WifiSsid { get; set; }
-
-    public bool IsWifiConnectSupported { get; } = PlatformServices.WifiConnectorFactory is not null;
-
-    [ObservableProperty]
-    public partial Bitmap? ResultImage { get; set; }
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Point the camera at a QR code";
 
     private bool _isCameraRunning;
 
-    public ScanViewModel(IDatabaseService db)
+    public ScanViewModel(IDatabaseService db, Action<ScanRecord, byte[]> onScanCompleted)
     {
         _db = db;
+        _onScanCompleted = onScanCompleted;
         _camera = PlatformServices.CameraFactory?.Invoke();
 
         if (_camera is not null)
@@ -114,7 +88,6 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
 
     private async void OnQrDetected(object? sender, QrDetectedEventArgs e)
     {
-        // Ignore repeats of the same code within a short window so a code doesn't get re-saved every frame.
         if (e.RawText == _lastRawText && DateTime.UtcNow - _lastDetectedAtUtc < TimeSpan.FromSeconds(3))
         {
             return;
@@ -122,7 +95,7 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
 
         _lastRawText = e.RawText;
         _lastDetectedAtUtc = DateTime.UtcNow;
-        _parsed = QrContentParser.Parse(e.RawText);
+        var parsed = QrContentParser.Parse(e.RawText);
 
         var fileName = $"{Guid.NewGuid():N}.jpg";
         var path = Path.Combine(AppPaths.ImagesDirectory, fileName);
@@ -132,136 +105,17 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
         {
             ScannedAtUtc = DateTime.UtcNow,
             RawText = e.RawText,
-            Kind = _parsed.Kind,
+            Kind = parsed.Kind,
             ImageFileName = fileName
         };
         await _db.InsertAsync(record).ConfigureAwait(false);
 
+        await StopAsync().ConfigureAwait(false);
+
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            ResultText = _parsed.DisplayText;
-            ActionLabel = _parsed.ActionLabel;
-            CanOpenAction = _parsed.ActionUri is not null;
-            IsWifiResult = _parsed.Wifi is not null;
-            WifiSsid = _parsed.Wifi?.Ssid;
-            HasResult = true;
-            StatusMessage = "Scanned!";
-            ResultImage = new Bitmap(new MemoryStream(e.JpegImage));
+            _onScanCompleted(record, e.JpegImage);
         });
-    }
-
-    public async Task<bool> ScanImageAsync(byte[] imageBytes)
-    {
-        try
-        {
-            using var bitmap = SKBitmap.Decode(imageBytes);
-            if (bitmap is null)
-            {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    StatusMessage = "Could not read the shared image.";
-                    HasResult = false;
-                });
-                return false;
-            }
-
-            var rawText = QrDecoder.TryDecode(bitmap);
-            if (string.IsNullOrEmpty(rawText))
-            {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    StatusMessage = "No QR code found in shared image.";
-                    HasResult = false;
-                });
-                return false;
-            }
-
-            byte[] jpegBytes;
-            using (var image = SKImage.FromBitmap(bitmap))
-            using (var data = image.Encode(SKEncodedImageFormat.Jpeg, 85))
-            {
-                jpegBytes = data.ToArray();
-            }
-
-            _lastRawText = rawText;
-            _lastDetectedAtUtc = DateTime.UtcNow;
-            _parsed = QrContentParser.Parse(rawText);
-
-            var fileName = $"{Guid.NewGuid():N}.jpg";
-            var path = Path.Combine(AppPaths.ImagesDirectory, fileName);
-            await File.WriteAllBytesAsync(path, jpegBytes).ConfigureAwait(false);
-
-            var record = new ScanRecord
-            {
-                ScannedAtUtc = DateTime.UtcNow,
-                RawText = rawText,
-                Kind = _parsed.Kind,
-                ImageFileName = fileName
-            };
-            await _db.InsertAsync(record).ConfigureAwait(false);
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ResultText = _parsed.DisplayText;
-                ActionLabel = _parsed.ActionLabel;
-                CanOpenAction = _parsed.ActionUri is not null;
-                IsWifiResult = _parsed.Wifi is not null;
-                WifiSsid = _parsed.Wifi?.Ssid;
-                HasResult = true;
-                StatusMessage = "Scanned shared image!";
-                ResultImage?.Dispose();
-                ResultImage = new Bitmap(new MemoryStream(jpegBytes));
-            });
-
-            return true;
-        }
-        catch
-        {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                StatusMessage = "Failed to process shared image.";
-                HasResult = false;
-            });
-            return false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task CopyTextAsync(TopLevel? topLevel)
-    {
-        if (topLevel?.Clipboard is { } clipboard)
-        {
-            await clipboard.SetTextAsync(ResultText).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenLinkAsync(TopLevel? topLevel)
-    {
-        if (_parsed?.ActionUri is not null && topLevel?.Launcher is not null)
-        {
-            await topLevel.Launcher.LaunchUriAsync(new Uri(_parsed.ActionUri)).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ConnectWifiAsync()
-    {
-        if (_parsed?.Wifi is not { } wifi)
-        {
-            return;
-        }
-
-        var connector = PlatformServices.WifiConnectorFactory?.Invoke();
-        if (connector is null)
-        {
-            StatusMessage = "Wi-Fi auto-connect isn't supported on this platform.";
-            return;
-        }
-
-        StatusMessage = await connector.ConnectAsync(wifi).ConfigureAwait(true)
-            ? "Requested Wi-Fi connection."
-            : "Couldn't start the Wi-Fi connection.";
     }
 
     public void Dispose()

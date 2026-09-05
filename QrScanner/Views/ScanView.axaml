@@ -7,55 +7,38 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="700"
              x:Class="QrScanner.Views.ScanView"
              x:DataType="vm:ScanViewModel">
-    <Grid RowDefinitions="*,*">
-        <ContentControl Grid.Row="0" Content="{Binding PreviewControl}" />
+    <Grid Background="Black">
+        <!-- Live Camera Viewport -->
+        <ContentControl Content="{Binding PreviewControl}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch" />
 
-        <Grid Grid.Row="1" Background="{DynamicResource SystemAltHighColor}">
-            <Grid RowDefinitions="Auto,*,Auto" Margin="16,16,16,88">
-                <TextBlock Grid.Row="0" Text="{Binding StatusMessage}" Opacity="0.7" IsVisible="{Binding !HasResult}" />
+        <!-- Viewfinder Box & Helper Overlay -->
+        <Grid Background="Transparent">
+            <Border Width="260" Height="260"
+                    BorderBrush="{DynamicResource SystemAccentColor}"
+                    BorderThickness="3"
+                    CornerRadius="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 0 32 #99000000" />
 
-                <TextBox Grid.Row="1"
-                         Text="{Binding ResultText}"
-                         IsReadOnly="True"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         VerticalContentAlignment="Top"
-                         IsVisible="{Binding HasResult}" />
-
-                <StackPanel Grid.Row="2" Spacing="4">
-                    <TextBlock Text="{Binding WifiSsid, StringFormat='Network: {0}'}"
-                               IsVisible="{Binding IsWifiResult}"
-                               Margin="0,8,0,0" />
-                    <Button Content="Connect to Wi-Fi"
-                            IsVisible="{Binding IsWifiResult}"
-                            IsEnabled="{Binding IsWifiConnectSupported}"
-                            Command="{Binding ConnectWifiCommand}"
-                            ToolTip.Tip="Not supported on this platform"
-                            HorizontalAlignment="Left" />
-                    <Button Content="{Binding ActionLabel}"
-                            IsVisible="{Binding CanOpenAction}"
-                            Command="{Binding OpenLinkCommand}"
-                            CommandParameter="{Binding $parent[TopLevel]}"
-                            HorizontalAlignment="Left" />
-                </StackPanel>
-            </Grid>
-
-            <Button Command="{Binding CopyTextCommand}"
-                    CommandParameter="{Binding $parent[TopLevel]}"
-                    IsVisible="{Binding HasResult}"
-                    Width="56" Height="56"
-                    CornerRadius="28"
-                    Padding="0"
-                    Background="{DynamicResource SystemAccentColor}"
-                    Foreground="White"
+            <!-- Bottom status pill -->
+            <Border Background="#CC000000"
+                    CornerRadius="20"
+                    Padding="16,10"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Bottom"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Margin="16"
-                    ToolTip.Tip="Copy text">
-                <lucide:LucideIcon Kind="Copy" Size="24" />
-            </Button>
+                    Margin="16,0,16,40">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <lucide:LucideIcon Kind="Scan" Size="18" Foreground="White" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="White"
+                               FontWeight="Medium"
+                               FontSize="14"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

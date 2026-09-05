@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             x:Class="QrScanner.Views.ScanResultView"
+             x:DataType="vm:ScanResultViewModel">
+    <Grid RowDefinitions="Auto,*" Margin="16" Background="{DynamicResource SystemAltHighColor}">
+        <!-- Top Navigation Bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+            <Button Command="{Binding DismissCommand}"
+                    ToolTip.Tip="Back to scanner"
+                    Padding="8"
+                    CornerRadius="20">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
+                    <TextBlock Text="Back" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding Title}"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Margin="12,0,0,0" />
+        </Grid>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16" MaxWidth="600" HorizontalAlignment="Stretch">
+                <!-- Image Preview -->
+                <Border IsVisible="{Binding Image, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Background="#10000000"
+                        CornerRadius="8"
+                        ClipToBounds="True"
+                        HorizontalAlignment="Center">
+                    <Image Source="{Binding Image}"
+                           MaxHeight="260"
+                           Stretch="Uniform" />
+                </Border>
+
+                <!-- SUCCESS VIEW -->
+                <StackPanel IsVisible="{Binding IsSuccess}" Spacing="14">
+                    <!-- Kind Badge -->
+                    <Border Background="{DynamicResource SystemAccentColor}"
+                            CornerRadius="12"
+                            Padding="10,4"
+                            HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding KindBadge}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="12" />
+                    </Border>
+
+                    <!-- Text Box Content -->
+                    <TextBox Text="{Binding DisplayText}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MinHeight="100" />
+
+                    <!-- Optional Status feedback (e.g. Copied) -->
+                    <TextBlock Text="{Binding StatusMessage}"
+                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               Opacity="0.8"
+                               FontWeight="Medium" />
+
+                    <!-- Wi-Fi Network details if applicable -->
+                    <TextBlock Text="{Binding WifiSsid, StringFormat='Wi-Fi Network: {0}'}"
+                               IsVisible="{Binding IsWifi}"
+                               FontWeight="SemiBold" />
+
+                    <!-- Action Buttons -->
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" Margin="0,8,0,0">
+                        <Button Command="{Binding OpenLinkCommand}"
+                                CommandParameter="{Binding $parent[TopLevel]}"
+                                IsVisible="{Binding CanOpenAction}"
+                                Background="{DynamicResource SystemAccentColor}"
+                                Foreground="White"
+                                ToolTip.Tip="Open link">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <lucide:LucideIcon Kind="ExternalLink" Size="18" />
+                                <TextBlock Text="{Binding ActionLabel}" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding ConnectWifiCommand}"
+                                IsVisible="{Binding IsWifi}"
+                                IsEnabled="{Binding IsWifiConnectSupported}"
+                                Background="{DynamicResource SystemAccentColor}"
+                                Foreground="White"
+                                ToolTip.Tip="Connect to Wi-Fi">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <lucide:LucideIcon Kind="Wifi" Size="18" />
+                                <TextBlock Text="Connect" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding CopyTextCommand}"
+                                CommandParameter="{Binding $parent[TopLevel]}"
+                                ToolTip.Tip="Copy to clipboard">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <lucide:LucideIcon Kind="Copy" Size="18" />
+                                <TextBlock Text="Copy" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding ShareCommand}"
+                                IsVisible="{Binding IsShareSupported}"
+                                ToolTip.Tip="Share image">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <lucide:LucideIcon Kind="Share2" Size="18" />
+                                <TextBlock Text="Share image" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding DismissCommand}"
+                                ToolTip.Tip="Scan another code">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <lucide:LucideIcon Kind="Scan" Size="18" />
+                                <TextBlock Text="Scan again" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                </StackPanel>
+
+                <!-- FAILURE VIEW -->
+                <StackPanel IsVisible="{Binding !IsSuccess}" Spacing="16" Margin="0,16,0,0" HorizontalAlignment="Center">
+                    <lucide:LucideIcon Kind="CircleAlert" Size="48" Foreground="#E53935" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="No readable QR code was detected in this image. Make sure the code is clear, well-lit, and in frame."
+                               Opacity="0.7"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="340" />
+                    <Button Command="{Binding DismissCommand}"
+                            Background="{DynamicResource SystemAccentColor}"
+                            Foreground="White"
+                            Padding="16,10"
+                            CornerRadius="8"
+                            HorizontalAlignment="Center"
+                            Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <lucide:LucideIcon Kind="Camera" Size="18" />
+                            <TextBlock Text="Scan with camera" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -10,46 +10,53 @@
              x:DataType="vm:MainViewModel"
              DragDrop.AllowDrop="True">
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainViewModel />
     </Design.DataContext>
 
     <Grid>
-        <Grid IsVisible="{Binding !IsAboutVisible}">
-            <TabControl SelectedIndex="{Binding SelectedTabIndex}">
-                <TabItem Header="Scan">
-                    <views:ScanView DataContext="{Binding Scan}" />
-                </TabItem>
-                <TabItem Header="History">
-                    <views:HistoryView DataContext="{Binding History}" />
-                </TabItem>
-            </TabControl>
+        <!-- Main Tabs (Scan & History) -->
+        <Grid IsVisible="{Binding CurrentResult, Converter={x:Static ObjectConverters.IsNull}}">
+            <Grid IsVisible="{Binding !IsAboutVisible}">
+                <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                    <TabItem Header="Scan">
+                        <views:ScanView DataContext="{Binding Scan}" />
+                    </TabItem>
+                    <TabItem Header="History">
+                        <views:HistoryView DataContext="{Binding History}" />
+                    </TabItem>
+                </TabControl>
 
-            <Button Command="{Binding ShowAboutCommand}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,4,8,0"
-                    ToolTip.Tip="About QR Scanner">
-                <lucide:LucideIcon Kind="Info" Size="20" />
-            </Button>
+                <Button Command="{Binding ShowAboutCommand}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,4,8,0"
+                        ToolTip.Tip="About QR Scanner">
+                    <lucide:LucideIcon Kind="Info" Size="20" />
+                </Button>
+            </Grid>
+
+            <!-- About Overlay -->
+            <Grid IsVisible="{Binding IsAboutVisible}"
+                  Background="{DynamicResource SystemAltHighColor}">
+                <Grid RowDefinitions="Auto,*">
+                    <Button Command="{Binding HideAboutCommand}"
+                            HorizontalAlignment="Left"
+                            Margin="16,16,16,0"
+                            ToolTip.Tip="Back to scanner">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
+                            <TextBlock Text="Back" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <views:AboutView Grid.Row="1" DataContext="{Binding About}" />
+                </Grid>
+            </Grid>
         </Grid>
 
-        <Grid IsVisible="{Binding IsAboutVisible}"
+        <!-- Scanned Result Page (Success or Failure) -->
+        <Grid IsVisible="{Binding CurrentResult, Converter={x:Static ObjectConverters.IsNotNull}}"
               Background="{DynamicResource SystemAltHighColor}">
-            <Grid RowDefinitions="Auto,*">
-                <Button Command="{Binding HideAboutCommand}"
-                        HorizontalAlignment="Left"
-                        Margin="16,16,16,0"
-                        ToolTip.Tip="Back to scanner">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
-                        <TextBlock Text="Back" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <views:AboutView Grid.Row="1" DataContext="{Binding About}" />
-            </Grid>
+            <views:ScanResultView DataContext="{Binding CurrentResult}" />
         </Grid>
     </Grid>
 </UserControl>
-
