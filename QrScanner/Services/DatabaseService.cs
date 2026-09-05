@@ -46,4 +46,10 @@ public sealed class DatabaseService : IDatabaseService
         await _initialization.ConfigureAwait(false);
         await _connection.DeleteAsync(record).ConfigureAwait(false);
     }
+
+    public async Task DeleteAllAsync()
+    {
+        await _initialization.ConfigureAwait(false);
+        await _connection.DeleteAllAsync<ScanRecord>().ConfigureAwait(false);
+    }
 }

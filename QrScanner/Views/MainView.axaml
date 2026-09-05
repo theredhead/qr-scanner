@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:QrScanner.ViewModels"
              xmlns:views="using:QrScanner.Views"
+             xmlns:lucide="using:Lucide.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="QrScanner.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -13,13 +14,41 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <TabControl SelectedIndex="{Binding SelectedTabIndex}">
-        <TabItem Header="Scan">
-            <views:ScanView DataContext="{Binding Scan}" />
-        </TabItem>
-        <TabItem Header="History">
-            <views:HistoryView DataContext="{Binding History}" />
-        </TabItem>
-    </TabControl>
+    <Grid>
+        <Grid IsVisible="{Binding !IsAboutVisible}">
+            <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                <TabItem Header="Scan">
+                    <views:ScanView DataContext="{Binding Scan}" />
+                </TabItem>
+                <TabItem Header="History">
+                    <views:HistoryView DataContext="{Binding History}" />
+                </TabItem>
+            </TabControl>
+
+            <Button Command="{Binding ShowAboutCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,4,8,0"
+                    ToolTip.Tip="About QR Scanner">
+                <lucide:LucideIcon Kind="Info" Size="20" />
+            </Button>
+        </Grid>
+
+        <Grid IsVisible="{Binding IsAboutVisible}"
+              Background="{DynamicResource SystemAltHighColor}">
+            <Grid RowDefinitions="Auto,*">
+                <Button Command="{Binding HideAboutCommand}"
+                        HorizontalAlignment="Left"
+                        Margin="16,16,16,0"
+                        ToolTip.Tip="Back to scanner">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
+                        <TextBlock Text="Back" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <views:AboutView Grid.Row="1" DataContext="{Binding About}" />
+            </Grid>
+        </Grid>
+    </Grid>
 </UserControl>
 

@@ -10,22 +10,45 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public HistoryViewModel History { get; }
 
+    public AboutViewModel About { get; }
+
     [ObservableProperty]
     public partial int SelectedTabIndex { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsAboutVisible { get; set; }
 
     public MainViewModel()
     {
         var db = new DatabaseService();
         Scan = new ScanViewModel(db);
         History = new HistoryViewModel(db);
+        About = new AboutViewModel(History);
 
-        // The Scan tab is selected by default, so kick off the camera without waiting for a tab change.
-        _ = Scan.StartAsync();
+        UpdateCameraState();
     }
 
     partial void OnSelectedTabIndexChanged(int value)
     {
-        if (value == 0)
+        if (IsAboutVisible)
+            IsAboutVisible = false;
+
+        UpdateCameraState();
+
+        if (value == 1)
+        {
+            _ = History.LoadAsync();
+        }
+    }
+
+    partial void OnIsAboutVisibleChanged(bool value)
+    {
+        UpdateCameraState();
+    }
+
+    private void UpdateCameraState()
+    {
+        if (SelectedTabIndex == 0 && !IsAboutVisible)
         {
             _ = Scan.StartAsync();
         }
@@ -33,11 +56,35 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             _ = Scan.StopAsync();
         }
+    }
 
-        if (value == 1)
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ShowAbout() => IsAboutVisible = true;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void HideAbout() => IsAboutVisible = false;
+
+    public bool TryNavigateBack()
+    {
+        if (IsAboutVisible)
         {
-            _ = History.LoadAsync();
+            IsAboutVisible = false;
+            return true;
         }
+
+        if (History.SelectedRecord is not null)
+        {
+            History.SelectedRecord = null;
+            return true;
+        }
+
+        if (SelectedTabIndex != 0)
+        {
+            SelectedTabIndex = 0;
+            return true;
+        }
+
+        return false;
     }
 
     public void Dispose() => Scan.Dispose();

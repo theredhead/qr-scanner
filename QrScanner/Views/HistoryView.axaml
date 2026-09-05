@@ -1,59 +1,70 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:QrScanner.ViewModels"
              xmlns:models="using:QrScanner.Models"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="700"
+             xmlns:views="using:QrScanner.Views"
+             xmlns:lucide="using:Lucide.Avalonia"
              x:Class="QrScanner.Views.HistoryView"
              x:DataType="vm:HistoryViewModel">
-    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
-        <TextBox Grid.Row="0"
-                 PlaceholderText="Search history..."
-                 Text="{Binding SearchText}"
-                 Margin="0,0,0,8" />
-
-        <ListBox Grid.Row="1"
-                 ItemsSource="{Binding Records}"
-                 SelectedItem="{Binding SelectedRecord}">
+    <UserControl.Resources>
+        <views:HistoryImageConverter x:Key="HistoryImageConverter" />
+    </UserControl.Resources>
+        <Grid>
+            <Grid RowDefinitions="Auto,*" IsVisible="{Binding !IsDetailVisible}">
+        <Grid Margin="16,16,16,10">
+            <TextBox PlaceholderText="Search history..." Text="{Binding SearchText}" />
+        </Grid>
+        <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0" ItemsSource="{Binding Records}" SelectedItem="{Binding SelectedRecord}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="models:ScanRecord">
-                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
-                        <Image Width="40" Height="40" Source="{Binding ImagePath}" Stretch="UniformToFill" />
-                        <StackPanel>
-                            <TextBlock Text="{Binding RawText}" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                    <Grid ColumnDefinitions="56,*,Auto" Margin="16,6">
+                        <Border Width="48" Height="48" ClipToBounds="True">
+                            <Image Source="{Binding ImagePath, Converter={StaticResource HistoryImageConverter}}" Stretch="UniformToFill" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding RawText}" TextTrimming="CharacterEllipsis" />
                             <TextBlock Text="{Binding ScannedAtUtc}" Opacity="0.6" FontSize="11" />
                         </StackPanel>
-                    </StackPanel>
+                        <Button Grid.Column="2" Command="{Binding $parent[UserControl].DataContext.RemoveCommand}" CommandParameter="{Binding}" ToolTip.Tip="Remove from history">
+                            <lucide:LucideIcon Kind="Trash2" Size="18" />
+                        </Button>
+                    </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+            </Grid>
 
-        <Border Grid.Row="2"
-                IsVisible="{Binding SelectedRecord, Converter={x:Static ObjectConverters.IsNotNull}}"
-                Padding="8" Margin="0,8,0,0" BorderThickness="1" BorderBrush="{DynamicResource SystemBaseLowColor}">
-            <StackPanel Spacing="8">
-                <Image Source="{Binding SelectedImage}" MaxHeight="160" Stretch="Uniform" />
-                <TextBox Text="{Binding SelectedRecord.RawText}"
-                         IsReadOnly="True"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MaxHeight="100" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Copy"
-                            Command="{Binding CopyTextCommand}"
-                            CommandParameter="{Binding $parent[TopLevel]}" />
-                    <Button Content="Open link"
-                            Command="{Binding OpenLinkCommand}"
-                            CommandParameter="{Binding $parent[TopLevel]}" />
-                    <Button Content="Connect to Wi-Fi"
-                            IsVisible="{Binding IsWifiSelected}"
-                            IsEnabled="{Binding IsWifiConnectSupported}"
-                            Command="{Binding ConnectWifiCommand}"
-                            ToolTip.Tip="Not supported on this platform" />
-                    <Button Content="Delete" Command="{Binding DeleteCommand}" />
+            <Grid IsVisible="{Binding IsDetailVisible}" Margin="16">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <Button Click="BackClick" HorizontalAlignment="Left" ToolTip.Tip="Back to history">
+                <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
+            </Button>
+            <TextBlock Grid.Row="1" Text="Scan details" FontSize="26" FontWeight="Bold" Margin="0,18,0,14" />
+            <ScrollViewer Grid.Row="2">
+                <StackPanel Spacing="14">
+                    <Image Source="{Binding SelectedImage}" MaxHeight="300" Stretch="Uniform" />
+                    <TextBox Text="{Binding SelectedRecord.RawText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" />
+                    <TextBlock Text="{Binding SelectedRecord.ScannedAtUtc}" Opacity="0.6" />
                 </StackPanel>
-            </StackPanel>
-        </Border>
-    </Grid>
+            </ScrollViewer>
+            <WrapPanel Grid.Row="3" Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" Margin="0,16,0,0">
+                <Button Command="{Binding CopyTextCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy text">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Copy" Size="18" /><TextBlock Text="Copy" /></StackPanel>
+                </Button>
+                <Button Command="{Binding OpenLinkCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Open link">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="ExternalLink" Size="18" /><TextBlock Text="Open link" /></StackPanel>
+                </Button>
+                <Button Command="{Binding ConnectWifiCommand}" IsVisible="{Binding IsWifiSelected}" IsEnabled="{Binding IsWifiConnectSupported}" ToolTip.Tip="Connect to Wi-Fi">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Wifi" Size="18" /><TextBlock Text="Connect" /></StackPanel>
+                </Button>
+                <Button Command="{Binding ShareCommand}" IsVisible="{Binding IsShareSupported}" ToolTip.Tip="Share image">
+                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Share2" Size="18" /><TextBlock Text="Share image" /></StackPanel>
+                </Button>
+                <Button Command="{Binding DeleteCommand}" ToolTip.Tip="Remove from history">
+                    <lucide:LucideIcon Kind="Trash2" Size="18" />
+                </Button>
+            </WrapPanel>
+        </Grid>
+            </Grid>
+        </Grid>
 </UserControl>

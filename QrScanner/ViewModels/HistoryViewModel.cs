@@ -30,6 +30,10 @@ public partial class HistoryViewModel : ViewModelBase
 
     public bool IsWifiConnectSupported { get; } = PlatformServices.WifiConnectorFactory is not null;
 
+    public bool IsShareSupported => PlatformServices.ShareFactory is not null;
+
+    public bool IsDetailVisible => SelectedRecord is not null;
+
     public ObservableCollection<ScanRecord> Records { get; } = [];
 
     public HistoryViewModel(IDatabaseService db)
@@ -54,10 +58,12 @@ public partial class HistoryViewModel : ViewModelBase
 
     partial void OnSelectedRecordChanged(ScanRecord? value)
     {
+        SelectedImage?.Dispose();
         SelectedImage = value is not null && File.Exists(value.ImagePath)
             ? new Bitmap(value.ImagePath)
             : null;
         IsWifiSelected = value is not null && QrContentParser.Parse(value.RawText).Wifi is not null;
+        OnPropertyChanged(nameof(IsDetailVisible));
     }
 
     [RelayCommand]
@@ -108,19 +114,50 @@ public partial class HistoryViewModel : ViewModelBase
     [RelayCommand]
     private async Task DeleteAsync()
     {
-        if (SelectedRecord is null)
+        if (SelectedRecord is not null)
         {
-            return;
+            await RemoveAsync(SelectedRecord).ConfigureAwait(true);
+            SelectedRecord = null;
         }
+    }
 
-        var toDelete = SelectedRecord;
-        await _db.DeleteAsync(toDelete).ConfigureAwait(true);
+    [RelayCommand]
+    private async Task RemoveAsync(ScanRecord? record)
+    {
+        if (record is null)
+            return;
 
-        if (File.Exists(toDelete.ImagePath))
+        await _db.DeleteAsync(record).ConfigureAwait(true);
+        if (File.Exists(record.ImagePath))
         {
-            File.Delete(toDelete.ImagePath);
+            File.Delete(record.ImagePath);
         }
 
         await LoadAsync().ConfigureAwait(true);
+    }
+
+    public async Task ResetAllAsync()
+    {
+        var records = await _db.GetAllAsync().ConfigureAwait(true);
+        await _db.DeleteAllAsync().ConfigureAwait(true);
+        foreach (var record in records)
+        {
+            if (File.Exists(record.ImagePath))
+                File.Delete(record.ImagePath);
+        }
+
+        SelectedRecord = null;
+        await LoadAsync().ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task ShareAsync()
+    {
+        if (SelectedRecord is not null && File.Exists(SelectedRecord.ImagePath))
+        {
+            var share = PlatformServices.ShareFactory?.Invoke();
+            if (share is not null)
+                await share.ShareImageAsync(SelectedRecord.ImagePath).ConfigureAwait(true);
+        }
     }
 }

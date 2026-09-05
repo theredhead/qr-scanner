@@ -12,4 +12,6 @@ public static class PlatformServices
 
     /// <summary>Null on platforms (e.g. Desktop) that don't support programmatic Wi-Fi connection.</summary>
     public static Func<IWifiConnector>? WifiConnectorFactory { get; set; }
+
+    public static Func<IShareService>? ShareFactory { get; set; }
 }

@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             x:Class="QrScanner.Views.AboutView"
+             x:DataType="vm:AboutViewModel">
+        <Grid>
+            <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="20">
+                <TextBlock Text="QR Scanner" FontSize="28" FontWeight="Bold" />
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,12,0,16">
+            <Button Command="{Binding OpenRepositoryCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}"
+                    ToolTip.Tip="Open GitHub repository">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="GitBranch" Size="18" />
+                    <TextBlock Text="GitHub" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding OpenLicenseCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}"
+                    ToolTip.Tip="Open MIT license">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="BookOpen" Size="18" />
+                    <TextBlock Text="MIT License" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+        <ScrollViewer Grid.Row="2">
+            <TextBox Text="{Binding Readme}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     BorderThickness="0"
+                     Padding="0" />
+        </ScrollViewer>
+        <StackPanel Grid.Row="3" Spacing="10" Margin="0,16,0,0">
+            <TextBlock Text="MIT License" Opacity="0.6" />
+            <Button Command="{Binding RequestResetCommand}" HorizontalAlignment="Left" ToolTip.Tip="Delete all scan history and saved images">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="Trash2" Size="18" />
+                    <TextBlock Text="Clear all data" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+      </Grid>
+
+      <Grid IsVisible="{Binding IsResetConfirmationVisible}"
+            Background="#80000000">
+          <Border Background="{DynamicResource SystemAltHighColor}"
+                  BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  BoxShadow="0 8 32 #55000000"
+                  Padding="24"
+                  MaxWidth="360"
+                  Margin="20"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center">
+              <StackPanel Spacing="16">
+                  <TextBlock Text="Clear all data?" FontSize="20" FontWeight="Bold" />
+                  <TextBlock Text="This deletes your complete scan history and every saved scan image. This cannot be undone."
+                             TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                      <Button Command="{Binding CancelResetCommand}" Content="Cancel" />
+                      <Button Command="{Binding ConfirmResetCommand}" Content="Clear all data" IsDefault="True" />
+                  </StackPanel>
+              </StackPanel>
+          </Border>
+      </Grid>
+    </Grid>
+</UserControl>

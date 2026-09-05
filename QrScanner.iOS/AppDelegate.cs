@@ -21,6 +21,7 @@ public partial class AppDelegate : AvaloniaAppDelegate<App>
     {
         PlatformServices.CameraFactory = () => new IosCameraScanService();
         PlatformServices.WifiConnectorFactory = () => new IosWifiConnector();
+        PlatformServices.ShareFactory = () => new IosShareService();
 
         return base.CustomizeAppBuilder(builder)
             .WithInterFont();

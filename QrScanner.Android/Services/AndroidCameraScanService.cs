@@ -28,7 +28,7 @@ namespace QrScanner.Android.Services;
 public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanService, ImageAnalysis.IAnalyzer
 {
     private readonly Activity _activity;
-    private readonly PreviewView _previewView;
+    private PreviewView? _previewView;
     private ProcessCameraProvider? _cameraProvider;
     private DateTime _lastDecodeAttemptUtc = DateTime.MinValue;
     private bool _hasLoggedFrame;
@@ -38,15 +38,32 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     public AndroidCameraScanService(Activity activity)
     {
         _activity = activity;
-        _previewView = new PreviewView(activity);
-
-        // PreviewView defaults to a SurfaceView internally, which commonly renders as
-        // blank/invisible when embedded inside a foreign rendering framework like Avalonia
-        // (a compositing-order issue). TextureView-based compatibility mode avoids that.
-        _previewView.SetImplementationMode(global::AndroidX.Camera.View.PreviewView.ImplementationMode.Compatible!);
     }
 
-    public Control CreatePreviewControl() => new AndroidPreviewHost(_previewView);
+    private PreviewView GetOrCreatePreviewView()
+    {
+        if (_previewView is not null)
+        {
+            try
+            {
+                if (_previewView.Handle != IntPtr.Zero)
+                {
+                    _ = _previewView.SurfaceProvider;
+                    return _previewView;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                _previewView = null;
+            }
+        }
+
+        _previewView = new PreviewView(_activity);
+        _previewView.SetImplementationMode(global::AndroidX.Camera.View.PreviewView.ImplementationMode.Compatible!);
+        return _previewView;
+    }
+
+    public Control CreatePreviewControl() => new AndroidPreviewHost(GetOrCreatePreviewView);
 
     public Task<bool> RequestPermissionAsync()
     {
@@ -65,11 +82,13 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     {
         try
         {
+            var previewView = GetOrCreatePreviewView();
+
             var future = ProcessCameraProvider.GetInstance(_activity);
             _cameraProvider = await AwaitFutureAsync(future).ConfigureAwait(true);
 
             var preview = new Preview.Builder().Build();
-            preview.SetSurfaceProvider(ContextCompat.GetMainExecutor(_activity)!, _previewView.SurfaceProvider);
+            preview.SetSurfaceProvider(ContextCompat.GetMainExecutor(_activity)!, previewView.SurfaceProvider);
 
             var analysis = new ImageAnalysis.Builder()
                 .SetBackpressureStrategy(ImageAnalysis.StrategyKeepOnlyLatest)
@@ -215,14 +234,14 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     /// <summary>Hosts the CameraX <see cref="PreviewView"/> inside the Avalonia visual tree.</summary>
     private sealed class AndroidPreviewHost : NativeControlHost
     {
-        private readonly PreviewView _view;
+        private readonly Func<global::Android.Views.View> _viewProvider;
 
-        public AndroidPreviewHost(PreviewView view) => _view = view;
+        public AndroidPreviewHost(Func<global::Android.Views.View> viewProvider) => _viewProvider = viewProvider;
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
             Log.Info("QrScanner", "AndroidPreviewHost.CreateNativeControlCore called - attaching PreviewView.");
-            return new global::Avalonia.Android.AndroidViewControlHandle(_view);
+            return new global::Avalonia.Android.AndroidViewControlHandle(_viewProvider());
         }
 
         protected override void DestroyNativeControlCore(IPlatformHandle control)

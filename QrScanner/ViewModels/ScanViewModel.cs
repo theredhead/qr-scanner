@@ -50,6 +50,8 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Point the camera at a QR code";
 
+    private bool _isCameraRunning;
+
     public ScanViewModel(IDatabaseService db)
     {
         _db = db;
@@ -64,27 +66,48 @@ public partial class ScanViewModel : ViewModelBase, IDisposable
 
     public async Task StartAsync()
     {
-        if (_camera is null)
+        if (_camera is null || _isCameraRunning)
         {
-            StatusMessage = "Camera is not available on this platform.";
             return;
         }
 
-        if (!await _camera.RequestPermissionAsync().ConfigureAwait(true))
-        {
-            StatusMessage = "Camera permission was denied.";
-            return;
-        }
+        _isCameraRunning = true;
 
-        StatusMessage = "Point the camera at a QR code";
-        await _camera.StartAsync().ConfigureAwait(true);
+        try
+        {
+            if (!await _camera.RequestPermissionAsync().ConfigureAwait(true))
+            {
+                StatusMessage = "Camera permission was denied.";
+                _isCameraRunning = false;
+                return;
+            }
+
+            StatusMessage = "Point the camera at a QR code";
+            await _camera.StartAsync().ConfigureAwait(true);
+        }
+        catch
+        {
+            _isCameraRunning = false;
+            StatusMessage = "Failed to start camera.";
+        }
     }
 
     public async Task StopAsync()
     {
-        if (_camera is not null)
+        if (_camera is null || !_isCameraRunning)
+        {
+            return;
+        }
+
+        _isCameraRunning = false;
+
+        try
         {
             await _camera.StopAsync().ConfigureAwait(true);
+        }
+        catch
+        {
+            // Ignore stop errors
         }
     }
 

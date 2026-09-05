@@ -10,4 +10,5 @@ public interface IDatabaseService
     Task<List<ScanRecord>> GetAllAsync();
     Task<List<ScanRecord>> SearchAsync(string query);
     Task DeleteAsync(ScanRecord record);
+    Task DeleteAllAsync();
 }
