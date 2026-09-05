@@ -13,14 +13,15 @@ public static class ExternalImageHandler
     private static readonly Queue<byte[]> PendingImages = new();
     private static readonly object SyncLock = new();
     private static Func<byte[], Task>? _receiver;
+    private static int _activeProcessingCount;
 
-    public static bool HasPendingImages
+    public static bool IsIngesting
     {
         get
         {
             lock (SyncLock)
             {
-                return PendingImages.Count > 0;
+                return PendingImages.Count > 0 || _activeProcessingCount > 0;
             }
         }
     }
@@ -39,9 +40,10 @@ public static class ExternalImageHandler
                 PendingImages.Enqueue(imageBytes);
                 return;
             }
+            _activeProcessingCount++;
         }
 
-        _ = receiver(imageBytes);
+        _ = RunReceiverAsync(receiver, imageBytes);
     }
 
     public static void RegisterReceiver(Func<byte[], Task> receiver)
@@ -53,12 +55,28 @@ public static class ExternalImageHandler
             while (PendingImages.TryDequeue(out var bytes))
             {
                 queued.Add(bytes);
+                _activeProcessingCount++;
             }
         }
 
         foreach (var bytes in queued)
         {
-            _ = receiver(bytes);
+            _ = RunReceiverAsync(receiver, bytes);
+        }
+    }
+
+    private static async Task RunReceiverAsync(Func<byte[], Task> receiver, byte[] bytes)
+    {
+        try
+        {
+            await receiver(bytes);
+        }
+        finally
+        {
+            lock (SyncLock)
+            {
+                _activeProcessingCount = Math.Max(0, _activeProcessingCount - 1);
+            }
         }
     }
 

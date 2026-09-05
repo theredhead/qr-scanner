@@ -56,13 +56,7 @@
         <!-- Scanned Result Page (Success or Failure) -->
         <Grid IsVisible="{Binding IsResultVisible}"
               Background="{DynamicResource SystemAltHighColor}">
-            <ContentControl Content="{Binding CurrentResult}">
-                <ContentControl.ContentTemplate>
-                    <DataTemplate DataType="vm:ScanResultViewModel">
-                        <views:ScanResultView />
-                    </DataTemplate>
-                </ContentControl.ContentTemplate>
-            </ContentControl>
+            <views:ScanResultView DataContext="{Binding CurrentResult}" />
         </Grid>
     </Panel>
 </UserControl>

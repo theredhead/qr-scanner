@@ -32,6 +32,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     private ProcessCameraProvider? _cameraProvider;
     private DateTime _lastDecodeAttemptUtc = DateTime.MinValue;
     private bool _hasLoggedFrame;
+    private volatile bool _shouldBeRunning;
 
     public event EventHandler<QrDetectedEventArgs>? QrDetected;
 
@@ -80,12 +81,19 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
     public async Task StartAsync()
     {
+        _shouldBeRunning = true;
         try
         {
             var previewView = GetOrCreatePreviewView();
 
             var future = ProcessCameraProvider.GetInstance(_activity);
             _cameraProvider = await AwaitFutureAsync(future).ConfigureAwait(true);
+
+            if (!_shouldBeRunning)
+            {
+                _cameraProvider?.UnbindAll();
+                return;
+            }
 
             var preview = new Preview.Builder().Build();
             preview.SetSurfaceProvider(ContextCompat.GetMainExecutor(_activity)!, previewView.SurfaceProvider);
@@ -108,6 +116,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
     public Task StopAsync()
     {
+        _shouldBeRunning = false;
         _cameraProvider?.UnbindAll();
         return Task.CompletedTask;
     }
@@ -202,51 +211,40 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
                 row[o + 3] = 255;
             }
 
-            Marshal.Copy(row, 0, dest + y * destStride, row.Length);
+            Marshal.Copy(row, 0, IntPtr.Add(dest, y * destStride), width * 4);
         }
 
         return bitmap;
     }
 
-    private Task<ProcessCameraProvider> AwaitFutureAsync(IListenableFuture future)
+    private static Task<ProcessCameraProvider> AwaitFutureAsync(IListenableFuture future)
     {
         var tcs = new TaskCompletionSource<ProcessCameraProvider>();
         future.AddListener(new Runnable(() =>
         {
             try
             {
-                tcs.TrySetResult((ProcessCameraProvider)future.Get()!);
+                var result = future.Get();
+                tcs.TrySetResult((ProcessCameraProvider)result!);
             }
             catch (Exception ex)
             {
                 tcs.TrySetException(ex);
             }
-        }), ContextCompat.GetMainExecutor(_activity)!);
+        }), ContextCompat.GetMainExecutor(_activity));
         return tcs.Task;
     }
 
-    void IDisposable.Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _cameraProvider?.UnbindAll();
-        base.Dispose();
-    }
-
-    /// <summary>Hosts the CameraX <see cref="PreviewView"/> inside the Avalonia visual tree.</summary>
-    private sealed class AndroidPreviewHost : NativeControlHost
-    {
-        private readonly Func<global::Android.Views.View> _viewProvider;
-
-        public AndroidPreviewHost(Func<global::Android.Views.View> viewProvider) => _viewProvider = viewProvider;
-
-        protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
+        if (disposing)
         {
-            Log.Info("QrScanner", "AndroidPreviewHost.CreateNativeControlCore called - attaching PreviewView.");
-            return new global::Avalonia.Android.AndroidViewControlHandle(_viewProvider());
+            _cameraProvider?.UnbindAll();
+            _cameraProvider?.Dispose();
+            _cameraProvider = null;
+            _previewView?.Dispose();
+            _previewView = null;
         }
-
-        protected override void DestroyNativeControlCore(IPlatformHandle control)
-        {
-            // The PreviewView's lifetime is owned by AndroidCameraScanService, not by this host.
-        }
+        base.Dispose(disposing);
     }
 }

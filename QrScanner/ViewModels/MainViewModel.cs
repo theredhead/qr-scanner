@@ -37,7 +37,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
 
-        if (!ExternalImageHandler.HasPendingImages)
+        if (!ExternalImageHandler.IsIngesting)
         {
             UpdateCameraState();
         }
@@ -139,7 +139,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     private void UpdateCameraState()
     {
-        if (SelectedTabIndex == 0 && !IsAboutVisible && CurrentResult == null && !ExternalImageHandler.HasPendingImages)
+        if (SelectedTabIndex == 0 && !IsAboutVisible && CurrentResult == null && !ExternalImageHandler.IsIngesting)
         {
             _ = Scan.StartAsync();
         }
