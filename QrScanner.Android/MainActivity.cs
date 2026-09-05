@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.IO;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using Android.Util;
 using Android.Window;
 using Avalonia;
 using Avalonia.Android;
@@ -35,6 +36,7 @@ namespace QrScanner.Android;
     DataMimeType = "image/*")]
 public class MainActivity : AvaloniaMainActivity
 {
+    private const string Tag = "QrScannerIntent";
     private BackCallback? _backCallback;
 
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -42,6 +44,14 @@ public class MainActivity : AvaloniaMainActivity
         PlatformServices.CameraFactory = () => new AndroidCameraScanService(this);
         PlatformServices.WifiConnectorFactory = () => new AndroidWifiConnector(this);
         PlatformServices.ShareFactory = () => new AndroidShareService(this);
+
+        // Process incoming share intent BEFORE base.OnCreate so image is queued
+        // into ExternalImageHandler before MainViewModel initializes its camera state.
+        if (Intent is not null)
+        {
+            HandleIntent(Intent);
+        }
+
         base.OnCreate(savedInstanceState);
 
         if ((int)Build.VERSION.SdkInt >= 33)
@@ -50,11 +60,6 @@ public class MainActivity : AvaloniaMainActivity
             OnBackInvokedDispatcher.RegisterOnBackInvokedCallback(
                 IOnBackInvokedDispatcher.PriorityDefault,
                 _backCallback);
-        }
-
-        if (Intent is not null)
-        {
-            HandleIntent(Intent);
         }
     }
 
@@ -71,23 +76,60 @@ public class MainActivity : AvaloniaMainActivity
     private void HandleIntent(Intent intent)
     {
         var action = intent.Action;
+        Log.Info(Tag, $"HandleIntent received action: {action}, type: {intent.Type}");
+
         if (action == Intent.ActionSend)
         {
-            var uri = (intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri)
-                      ?? intent.ClipData?.GetItemAt(0)?.Uri
-                      ?? intent.Data;
+            global::Android.Net.Uri? uri = null;
+
+            if (intent.ClipData is { ItemCount: > 0 })
+            {
+                uri = intent.ClipData.GetItemAt(0)?.Uri;
+                Log.Info(Tag, $"Got URI from ClipData: {uri}");
+            }
+
+            if (uri is null)
+            {
+                uri = (int)Build.VERSION.SdkInt >= 33
+                    ? intent.GetParcelableExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri))) as global::Android.Net.Uri
+                    : intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri;
+                Log.Info(Tag, $"Got URI from ExtraStream: {uri}");
+            }
+
+            if (uri is null)
+            {
+                uri = intent.Data;
+                Log.Info(Tag, $"Got URI from Data: {uri}");
+            }
 
             if (uri is not null)
             {
                 ReadAndProcessImageUri(uri);
             }
+            else
+            {
+                Log.Warn(Tag, "ActionSend was received but no image URI could be extracted.");
+            }
         }
         else if (action == Intent.ActionSendMultiple)
         {
-            var uris = intent.GetParcelableArrayListExtra(Intent.ExtraStream);
-            if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uri)
+            if (intent.ClipData is { ItemCount: > 0 })
             {
-                ReadAndProcessImageUri(uri);
+                var uri = intent.ClipData.GetItemAt(0)?.Uri;
+                if (uri is not null)
+                {
+                    ReadAndProcessImageUri(uri);
+                    return;
+                }
+            }
+
+            var uris = (int)Build.VERSION.SdkInt >= 33
+                ? intent.GetParcelableArrayListExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri)))
+                : intent.GetParcelableArrayListExtra(Intent.ExtraStream);
+
+            if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uriFirst)
+            {
+                ReadAndProcessImageUri(uriFirst);
             }
         }
         else if (action == Intent.ActionView)
@@ -103,21 +145,27 @@ public class MainActivity : AvaloniaMainActivity
     {
         try
         {
+            Log.Info(Tag, $"Reading stream for URI: {uri}");
             using var stream = ContentResolver?.OpenInputStream(uri);
             if (stream is not null)
             {
                 using var ms = new MemoryStream();
                 stream.CopyTo(ms);
                 var bytes = ms.ToArray();
+                Log.Info(Tag, $"Read {bytes.Length} bytes from shared image URI.");
                 if (bytes.Length > 0)
                 {
                     ExternalImageHandler.HandleImage(bytes);
                 }
             }
+            else
+            {
+                Log.Warn(Tag, $"ContentResolver returned null stream for URI: {uri}");
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to read shared image URI: {ex}");
+            Log.Error(Tag, $"Failed to read shared image URI: {ex}");
         }
     }
 
