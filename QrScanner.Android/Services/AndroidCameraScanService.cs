@@ -279,12 +279,28 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
             Log.Info("QrScanner", "AndroidPreviewHost.CreateNativeControlCore called - attaching PreviewView.");
-            return new global::Avalonia.Android.AndroidViewControlHandle(_viewProvider());
+            var view = _viewProvider();
+            if (view.Parent is global::Android.Views.ViewGroup currentParent)
+            {
+                currentParent.RemoveView(view);
+            }
+            return new global::Avalonia.Android.AndroidViewControlHandle(view);
         }
 
         protected override void DestroyNativeControlCore(IPlatformHandle control)
         {
-            // The PreviewView's lifetime is owned by AndroidCameraScanService, not by this host.
+            try
+            {
+                var view = _viewProvider();
+                if (view.Parent is global::Android.Views.ViewGroup currentParent)
+                {
+                    currentParent.RemoveView(view);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("QrScanner", $"DestroyNativeControlCore exception ignored: {ex}");
+            }
         }
     }
 }

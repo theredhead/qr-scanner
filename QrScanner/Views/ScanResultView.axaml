@@ -3,8 +3,9 @@
              xmlns:vm="using:QrScanner.ViewModels"
              xmlns:lucide="using:Lucide.Avalonia"
              x:Class="QrScanner.Views.ScanResultView"
-             x:DataType="vm:ScanResultViewModel">
-    <Grid RowDefinitions="Auto,*" Margin="16" Background="{DynamicResource SystemAltHighColor}">
+             x:DataType="vm:ScanResultViewModel"
+             Background="{DynamicResource SystemRegionBrush}">
+    <Grid RowDefinitions="Auto,*" Margin="16">
         <!-- Top Navigation Bar -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
             <Button Command="{Binding DismissCommand}"

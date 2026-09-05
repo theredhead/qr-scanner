@@ -37,7 +37,7 @@
 
             <!-- About Overlay -->
             <Grid IsVisible="{Binding IsAboutVisible}"
-                  Background="{DynamicResource SystemAltHighColor}">
+                  Background="{DynamicResource SystemRegionBrush}">
                 <Grid RowDefinitions="Auto,*">
                     <Button Command="{Binding HideAboutCommand}"
                             HorizontalAlignment="Left"
@@ -55,7 +55,7 @@
 
         <!-- Scanned Result Page (Success or Failure) -->
         <Grid IsVisible="{Binding IsResultVisible}"
-              Background="{DynamicResource SystemAltHighColor}">
+              Background="{DynamicResource SystemRegionBrush}">
             <views:ScanResultView DataContext="{Binding CurrentResult}" />
         </Grid>
     </Panel>

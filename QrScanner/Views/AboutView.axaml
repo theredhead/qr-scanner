@@ -46,7 +46,7 @@
 
       <Grid IsVisible="{Binding IsResetConfirmationVisible}"
             Background="#80000000">
-          <Border Background="{DynamicResource SystemAltHighColor}"
+          <Border Background="{DynamicResource SystemRegionBrush}"
                   BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                   BorderThickness="1"
                   CornerRadius="8"
