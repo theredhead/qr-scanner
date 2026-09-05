@@ -34,7 +34,6 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
 
         if (_camera is not null)
         {
-            PreviewControl = _camera.CreatePreviewControl();
             _camera.QrDetected += OnQrDetected;
         }
     }
@@ -58,12 +57,20 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
             }
 
             StatusMessage = "Point the camera at a QR code";
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PreviewControl = _camera.CreatePreviewControl();
+            });
             await _camera.StartAsync().ConfigureAwait(true);
         }
         catch
         {
             _isCameraRunning = false;
             StatusMessage = "Failed to start camera.";
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PreviewControl = null;
+            });
         }
     }
 
@@ -71,6 +78,10 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
     {
         if (_camera is null || !_isCameraRunning)
         {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PreviewControl = null;
+            });
             return;
         }
 
@@ -83,6 +94,13 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
         catch
         {
             // Ignore stop errors
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PreviewControl = null;
+            });
         }
     }
 
