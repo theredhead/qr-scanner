@@ -166,7 +166,7 @@ public static class QrDecoder
             canvas.Translate(targetW / 2f, targetH / 2f);
             canvas.RotateDegrees(degrees);
             canvas.Translate(-source.Width / 2f, -source.Height / 2f);
-            canvas.DrawBitmap(source, 0, 0);
+            canvas.DrawBitmap(source, 0, 0, SKSamplingOptions.Default);
         }
         source.Dispose();
         return rotated;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Android.App;
@@ -19,7 +20,7 @@ public sealed class AndroidWifiConnector(Activity activity) : IWifiConnector
 {
     public Task<bool> ConnectAsync(WifiCredentials credentials)
     {
-        if (Build.VERSION.SdkInt < BuildVersionCodes.R)
+        if (!OperatingSystem.IsAndroidVersionAtLeast(30))
         {
             return Task.FromResult(false);
         }

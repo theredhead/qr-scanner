@@ -54,7 +54,7 @@ public class MainActivity : AvaloniaMainActivity
 
         base.OnCreate(savedInstanceState);
 
-        if ((int)Build.VERSION.SdkInt >= 33)
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             _backCallback = new BackCallback(HandleBackInvoked);
             OnBackInvokedDispatcher.RegisterOnBackInvokedCallback(
@@ -90,9 +90,16 @@ public class MainActivity : AvaloniaMainActivity
 
             if (uri is null)
             {
-                uri = (int)Build.VERSION.SdkInt >= 33
-                    ? intent.GetParcelableExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri))) as global::Android.Net.Uri
-                    : intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri;
+                if (OperatingSystem.IsAndroidVersionAtLeast(33))
+                {
+                    uri = intent.GetParcelableExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri))) as global::Android.Net.Uri;
+                }
+                else
+                {
+#pragma warning disable CA1422
+                    uri = intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri;
+#pragma warning restore CA1422
+                }
                 Log.Info(Tag, $"Got URI from ExtraStream: {uri}");
             }
 
@@ -123,13 +130,23 @@ public class MainActivity : AvaloniaMainActivity
                 }
             }
 
-            var uris = (int)Build.VERSION.SdkInt >= 33
-                ? intent.GetParcelableArrayListExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri)))
-                : intent.GetParcelableArrayListExtra(Intent.ExtraStream);
-
-            if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uriFirst)
+            if (OperatingSystem.IsAndroidVersionAtLeast(33))
             {
-                ReadAndProcessImageUri(uriFirst);
+                var uris = intent.GetParcelableArrayListExtra(Intent.ExtraStream, Java.Lang.Class.FromType(typeof(global::Android.Net.Uri)));
+                if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uriFirst)
+                {
+                    ReadAndProcessImageUri(uriFirst);
+                }
+            }
+            else
+            {
+#pragma warning disable CA1422
+                var uris = intent.GetParcelableArrayListExtra(Intent.ExtraStream);
+                if (uris is { Count: > 0 } && uris[0] is global::Android.Net.Uri uriFirst)
+                {
+                    ReadAndProcessImageUri(uriFirst);
+                }
+#pragma warning restore CA1422
             }
         }
         else if (action == Intent.ActionView)
