@@ -18,11 +18,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public AboutViewModel About { get; }
 
     [ObservableProperty]
-    public partial ViewModelBase CurrentPage { get; set; }
+    private ViewModelBase _currentPage;
 
     public bool IsScanActive => CurrentPage is ScanViewModel;
     public bool IsHistoryActive => CurrentPage is HistoryViewModel;
-    public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel;
+    public bool IsAboutActive => CurrentPage is AboutViewModel;
+    public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel or AboutViewModel;
 
     public MainViewModel()
     {
@@ -31,7 +32,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         History = new HistoryViewModel(_db, OnHistoryRecordSelected);
         About = new AboutViewModel(History, NavigateToScan);
 
-        CurrentPage = Scan;
+        _currentPage = Scan;
 
         ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
 
@@ -45,6 +46,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsScanActive));
         OnPropertyChanged(nameof(IsHistoryActive));
+        OnPropertyChanged(nameof(IsAboutActive));
         OnPropertyChanged(nameof(IsNavBarVisible));
 
         if (value is ScanViewModel)

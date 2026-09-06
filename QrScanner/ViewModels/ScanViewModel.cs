@@ -56,12 +56,29 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
                 return;
             }
 
+            if (!_isCameraRunning)
+                return;
+
             StatusMessage = "Point the camera at a QR code";
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                PreviewControl = _camera.CreatePreviewControl();
+                if (_isCameraRunning)
+                    PreviewControl = _camera.CreatePreviewControl();
             });
+
+            if (!_isCameraRunning)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() => PreviewControl = null);
+                return;
+            }
+
             await _camera.StartAsync().ConfigureAwait(true);
+
+            if (!_isCameraRunning)
+            {
+                await _camera.StopAsync().ConfigureAwait(true);
+                await Dispatcher.UIThread.InvokeAsync(() => PreviewControl = null);
+            }
         }
         catch
         {
@@ -76,32 +93,24 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
 
     public async Task StopAsync()
     {
-        if (_camera is null || !_isCameraRunning)
-        {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                PreviewControl = null;
-            });
-            return;
-        }
-
         _isCameraRunning = false;
 
-        try
+        if (_camera is not null)
         {
-            await _camera.StopAsync().ConfigureAwait(true);
-        }
-        catch
-        {
-            // Ignore stop errors
-        }
-        finally
-        {
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            try
             {
-                PreviewControl = null;
-            });
+                await _camera.StopAsync().ConfigureAwait(true);
+            }
+            catch
+            {
+                // Ignore stop errors
+            }
         }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            PreviewControl = null;
+        });
     }
 
     private async void OnQrDetected(object? sender, QrDetectedEventArgs e)

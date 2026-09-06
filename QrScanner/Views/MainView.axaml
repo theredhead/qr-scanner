@@ -22,19 +22,20 @@
                 Background="{DynamicResource SystemRegionBrush}"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="16,6">
-            <Grid ColumnDefinitions="*,*,Auto">
+                Padding="8,4">
+            <Grid ColumnDefinitions="*,*,*">
                 <!-- Scan Tab Button -->
                 <Button Grid.Column="0"
                         Command="{Binding NavigateToScanCommand}"
                         Background="Transparent"
                         BorderThickness="0"
-                        HorizontalAlignment="Center"
-                        Padding="16,6"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
                         ToolTip.Tip="Camera Scanner">
                     <StackPanel Spacing="3" HorizontalAlignment="Center">
                         <lucide:LucideIcon Kind="Scan" Size="22" />
-                        <TextBlock Text="Scan" FontSize="11" HorizontalAlignment="Center" />
+                        <TextBlock Text="Scan" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
@@ -43,24 +44,29 @@
                         Command="{Binding NavigateToHistoryCommand}"
                         Background="Transparent"
                         BorderThickness="0"
-                        HorizontalAlignment="Center"
-                        Padding="16,6"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
                         ToolTip.Tip="Scan History">
                     <StackPanel Spacing="3" HorizontalAlignment="Center">
                         <lucide:LucideIcon Kind="Clock" Size="22" />
-                        <TextBlock Text="History" FontSize="11" HorizontalAlignment="Center" />
+                        <TextBlock Text="History" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
-                <!-- About Info Button -->
+                <!-- About Tab Button -->
                 <Button Grid.Column="2"
                         Command="{Binding NavigateToAboutCommand}"
                         Background="Transparent"
                         BorderThickness="0"
-                        VerticalAlignment="Center"
-                        Padding="10,6"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
                         ToolTip.Tip="About QR Scanner">
-                    <lucide:LucideIcon Kind="Info" Size="20" />
+                    <StackPanel Spacing="3" HorizontalAlignment="Center">
+                        <lucide:LucideIcon Kind="Info" Size="22" />
+                        <TextBlock Text="About" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
                 </Button>
             </Grid>
         </Border>

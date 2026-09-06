@@ -29,6 +29,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 {
     private readonly Activity _activity;
     private PreviewView? _previewView;
+    private global::Android.Widget.FrameLayout? _container;
     private ProcessCameraProvider? _cameraProvider;
     private DateTime _lastDecodeAttemptUtc = DateTime.MinValue;
     private bool _hasLoggedFrame;
@@ -64,7 +65,33 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         return _previewView;
     }
 
-    public Control CreatePreviewControl() => new AndroidPreviewHost(GetOrCreatePreviewView);
+    private global::Android.Views.View GetOrCreateContainer()
+    {
+        if (_container is not null && _container.Handle != IntPtr.Zero)
+        {
+            return _container;
+        }
+
+        var preview = GetOrCreatePreviewView();
+        if (preview.Parent is global::Android.Views.ViewGroup oldParent)
+        {
+            oldParent.RemoveView(preview);
+        }
+
+        _container = new global::Android.Widget.FrameLayout(_activity);
+        _container.AddView(preview, new global::Android.Widget.FrameLayout.LayoutParams(
+            global::Android.Views.ViewGroup.LayoutParams.MatchParent,
+            global::Android.Views.ViewGroup.LayoutParams.MatchParent));
+
+        var overlay = new ViewfinderOverlayView(_activity);
+        _container.AddView(overlay, new global::Android.Widget.FrameLayout.LayoutParams(
+            global::Android.Views.ViewGroup.LayoutParams.MatchParent,
+            global::Android.Views.ViewGroup.LayoutParams.MatchParent));
+
+        return _container;
+    }
+
+    public Control CreatePreviewControl() => new AndroidPreviewHost(GetOrCreateContainer);
 
     public Task<bool> RequestPermissionAsync()
     {
@@ -269,7 +296,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         base.Dispose(disposing);
     }
 
-    /// <summary>Hosts the CameraX <see cref="PreviewView"/> inside the Avalonia visual tree.</summary>
+    /// <summary>Hosts the CameraX <see cref="PreviewView"/> and native viewfinder overlay inside the Avalonia visual tree.</summary>
     private sealed class AndroidPreviewHost : NativeControlHost
     {
         private readonly Func<global::Android.Views.View> _viewProvider;
@@ -301,6 +328,45 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             {
                 Log.Warn("QrScanner", $"DestroyNativeControlCore exception ignored: {ex}");
             }
+        }
+    }
+
+    /// <summary>Draws the native viewfinder target box directly on top of the CameraX PreviewView.</summary>
+    private sealed class ViewfinderOverlayView : global::Android.Views.View
+    {
+        private readonly global::Android.Graphics.Paint _borderPaint;
+        private readonly float _boxSizeDp;
+        private readonly float _cornerRadiusDp;
+
+        public ViewfinderOverlayView(global::Android.Content.Context context) : base(context)
+        {
+            SetWillNotDraw(false);
+            var density = context.Resources?.DisplayMetrics?.Density ?? 1f;
+            _boxSizeDp = 260f * density;
+            _cornerRadiusDp = 20f * density;
+
+            _borderPaint = new global::Android.Graphics.Paint
+            {
+                Color = new global::Android.Graphics.Color(20, 184, 166), // Teal accent (#14B8A6)
+                StrokeWidth = 3f * density,
+                AntiAlias = true
+            };
+            _borderPaint.SetStyle(global::Android.Graphics.Paint.Style.Stroke);
+        }
+
+        protected override void OnDraw(global::Android.Graphics.Canvas canvas)
+        {
+            base.OnDraw(canvas);
+
+            var w = Width;
+            var h = Height;
+            var left = (w - _boxSizeDp) / 2f;
+            var top = (h - _boxSizeDp) / 2f;
+            var right = left + _boxSizeDp;
+            var bottom = top + _boxSizeDp;
+
+            var rect = new global::Android.Graphics.RectF(left, top, right, bottom);
+            canvas.DrawRoundRect(rect, _cornerRadiusDp, _cornerRadiusDp, _borderPaint);
         }
     }
 }

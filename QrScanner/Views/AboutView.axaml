@@ -6,23 +6,10 @@
              x:DataType="vm:AboutViewModel"
              Background="{DynamicResource SystemRegionBrush}">
     <Grid>
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20">
-            <!-- Back button to return to scanner -->
-            <Button Command="{Binding BackCommand}"
-                    HorizontalAlignment="Left"
-                    Padding="10,6"
-                    CornerRadius="20"
-                    Margin="0,0,0,12"
-                    ToolTip.Tip="Back to scanner">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
-                    <TextBlock Text="Back" VerticalAlignment="Center" FontWeight="SemiBold" />
-                </StackPanel>
-            </Button>
+        <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="20">
+            <TextBlock Text="QR Scanner" FontSize="28" FontWeight="Bold" />
 
-            <TextBlock Grid.Row="1" Text="QR Scanner" FontSize="28" FontWeight="Bold" />
-
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,12,0,16">
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,12,0,16">
                 <Button Command="{Binding OpenRepositoryCommand}"
                         CommandParameter="{Binding $parent[TopLevel]}"
                         ToolTip.Tip="Open GitHub repository">
@@ -41,7 +28,7 @@
                 </Button>
             </StackPanel>
 
-            <ScrollViewer Grid.Row="3">
+            <ScrollViewer Grid.Row="2">
                 <TextBox Text="{Binding Readme}"
                          IsReadOnly="True"
                          AcceptsReturn="True"
@@ -50,7 +37,7 @@
                          Padding="0" />
             </ScrollViewer>
 
-            <StackPanel Grid.Row="4" Spacing="10" Margin="0,16,0,0">
+            <StackPanel Grid.Row="3" Spacing="10" Margin="0,16,0,0">
                 <TextBlock Text="MIT License" Opacity="0.6" />
                 <Button Command="{Binding RequestResetCommand}" HorizontalAlignment="Left" ToolTip.Tip="Delete all scan history and saved images">
                     <StackPanel Orientation="Horizontal" Spacing="6">
