@@ -12,8 +12,13 @@ namespace QrScanner.ViewModels;
 public sealed partial class AboutViewModel : ViewModelBase
 {
     private readonly HistoryViewModel _history;
+    private readonly Action _onBack;
 
-    public AboutViewModel(HistoryViewModel history) => _history = history;
+    public AboutViewModel(HistoryViewModel history, Action onBack)
+    {
+        _history = history;
+        _onBack = onBack;
+    }
 
     public string Readme { get; } = ReadAsset("README.md");
     public string License { get; } = ReadAsset("LICENSE");
@@ -22,6 +27,9 @@ public sealed partial class AboutViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool IsResetConfirmationVisible { get; set; }
+
+    [RelayCommand]
+    private void Back() => _onBack();
 
     [RelayCommand]
     private void RequestReset() => IsResetConfirmationVisible = true;
@@ -37,14 +45,14 @@ public sealed partial class AboutViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async System.Threading.Tasks.Task OpenRepositoryAsync(Avalonia.Controls.TopLevel? topLevel)
+    private async Task OpenRepositoryAsync(Avalonia.Controls.TopLevel? topLevel)
     {
         if (topLevel?.Launcher is not null)
             await topLevel.Launcher.LaunchUriAsync(RepositoryUri);
     }
 
     [RelayCommand]
-    private async System.Threading.Tasks.Task OpenLicenseAsync(Avalonia.Controls.TopLevel? topLevel)
+    private async Task OpenLicenseAsync(Avalonia.Controls.TopLevel? topLevel)
     {
         if (topLevel?.Launcher is not null)
             await topLevel.Launcher.LaunchUriAsync(LicenseUri);

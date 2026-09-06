@@ -18,46 +18,87 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public AboutViewModel About { get; }
 
     [ObservableProperty]
-    public partial ScanResultViewModel? CurrentResult { get; set; }
+    public partial ViewModelBase CurrentPage { get; set; }
 
-    [ObservableProperty]
-    public partial int SelectedTabIndex { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsAboutVisible { get; set; }
+    public bool IsScanActive => CurrentPage is ScanViewModel;
+    public bool IsHistoryActive => CurrentPage is HistoryViewModel;
+    public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel;
 
     public MainViewModel()
     {
         _db = new DatabaseService();
         Scan = new ScanViewModel(_db, OnLiveScanCompleted);
-        History = new HistoryViewModel(_db);
-        About = new AboutViewModel(History);
+        History = new HistoryViewModel(_db, OnHistoryRecordSelected);
+        About = new AboutViewModel(History, NavigateToScan);
+
+        CurrentPage = Scan;
 
         ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
 
         if (!ExternalImageHandler.IsIngesting)
         {
-            UpdateCameraState();
+            _ = Scan.StartAsync();
         }
     }
 
+    partial void OnCurrentPageChanged(ViewModelBase value)
+    {
+        OnPropertyChanged(nameof(IsScanActive));
+        OnPropertyChanged(nameof(IsHistoryActive));
+        OnPropertyChanged(nameof(IsNavBarVisible));
+
+        if (value is ScanViewModel)
+        {
+            _ = Scan.StartAsync();
+        }
+        else
+        {
+            _ = Scan.StopAsync();
+        }
+
+        if (value is HistoryViewModel)
+        {
+            _ = History.LoadAsync();
+        }
+    }
+
+    [RelayCommand]
+    public void NavigateToScan() => CurrentPage = Scan;
+
+    [RelayCommand]
+    public void NavigateToHistory() => CurrentPage = History;
+
+    [RelayCommand]
+    public void NavigateToAbout() => CurrentPage = About;
+
     private void OnLiveScanCompleted(ScanRecord record, byte[] jpegBytes)
     {
-        CurrentResult?.Dispose();
-        CurrentResult = ScanResultViewModel.CreateSuccess(
+        CurrentPage = ScanResultViewModel.CreateSuccess(
             record.RawText,
             jpegBytes,
             record.ImagePath,
-            onDismiss: CloseResult);
-        UpdateCameraState();
+            onDismiss: NavigateToScan);
+    }
+
+    private void OnHistoryRecordSelected(ScanRecord record)
+    {
+        byte[]? jpegBytes = null;
+        if (File.Exists(record.ImagePath))
+        {
+            try { jpegBytes = File.ReadAllBytes(record.ImagePath); } catch { }
+        }
+
+        CurrentPage = ScanResultViewModel.CreateSuccess(
+            record.RawText,
+            jpegBytes ?? [],
+            record.ImagePath,
+            onDismiss: NavigateToHistory);
     }
 
     public async Task ProcessSharedImageAsync(byte[] imageBytes)
     {
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            IsAboutVisible = false;
-            SelectedTabIndex = 0;
             _ = Scan.StopAsync();
         });
 
@@ -81,100 +122,36 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                CurrentResult?.Dispose();
-                CurrentResult = ScanResultViewModel.CreateSuccess(
+                CurrentPage = ScanResultViewModel.CreateSuccess(
                     rawText,
                     jpegBytes,
                     path,
-                    onDismiss: CloseResult);
-                UpdateCameraState();
+                    onDismiss: NavigateToScan);
             });
         }
         else
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                CurrentResult?.Dispose();
-                CurrentResult = ScanResultViewModel.CreateFailure(
+                CurrentPage = ScanResultViewModel.CreateFailure(
                     imageBytes,
                     "No QR code found in shared image",
-                    onDismiss: CloseResult);
-                UpdateCameraState();
+                    onDismiss: NavigateToScan);
             });
         }
     }
 
-    private void CloseResult()
-    {
-        CurrentResult?.Dispose();
-        CurrentResult = null;
-        UpdateCameraState();
-    }
-
-    partial void OnSelectedTabIndexChanged(int value)
-    {
-        if (IsAboutVisible)
-            IsAboutVisible = false;
-
-        UpdateCameraState();
-
-        if (value == 1)
-        {
-            _ = History.LoadAsync();
-        }
-    }
-
-    partial void OnIsAboutVisibleChanged(bool value)
-    {
-        UpdateCameraState();
-    }
-
-    partial void OnCurrentResultChanged(ScanResultViewModel? value)
-    {
-        UpdateCameraState();
-    }
-
-    private void UpdateCameraState()
-    {
-        if (SelectedTabIndex == 0 && !IsAboutVisible && CurrentResult == null && !ExternalImageHandler.IsIngesting)
-        {
-            _ = Scan.StartAsync();
-        }
-        else
-        {
-            _ = Scan.StopAsync();
-        }
-    }
-
-    [RelayCommand]
-    private void ShowAbout() => IsAboutVisible = true;
-
-    [RelayCommand]
-    private void HideAbout() => IsAboutVisible = false;
-
     public bool TryNavigateBack()
     {
-        if (IsAboutVisible)
+        if (CurrentPage is ScanResultViewModel or AboutViewModel)
         {
-            IsAboutVisible = false;
+            NavigateToScan();
             return true;
         }
 
-        if (CurrentResult is not null)
+        if (CurrentPage is HistoryViewModel)
         {
-            CloseResult();
-            return true;
-        }
-
-        if (History.SelectedRecord is not null)
-        {
-            History.SelectedRecord = null;
-            return true;
-        }
-
-        if (SelectedTabIndex != 0)
-        {
-            SelectedTabIndex = 0;
+            NavigateToScan();
             return true;
         }
 
@@ -184,7 +161,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         ExternalImageHandler.UnregisterReceiver(ProcessSharedImageAsync);
-        CurrentResult?.Dispose();
         Scan.Dispose();
     }
 }

@@ -1,37 +1,35 @@
 # Architecture & Navigation Specification
 
 ## 1. Overview
-QR Scanner is a cross-platform Avalonia UI application (.NET 10) targeting Android, iOS, and Desktop (macOS/Windows/Linux). The application features two primary ingest pipelines:
-1. **Live Camera Scanner**: Real-time camera viewfinder with continuous frame analysis.
-2. **External Image Sharing**: Receiving images from other applications via Android Share Sheet (`ACTION_SEND`, `ACTION_SEND_MULTIPLE`, `ACTION_VIEW`), iOS Open-In / Share extensions, and Desktop Drag & Drop / CLI arguments.
+QR Scanner is a cross-platform Avalonia UI application (.NET 10) targeting Android, iOS, and Desktop (macOS/Windows/Linux).
+
+The UI uses a **single-state navigation model** where `MainViewModel.CurrentPage` directly determines the active screen and camera lifecycle.
 
 ---
 
 ## 2. Navigation Tree & Views
 
 ```
-Root Shell (MainView / MainWindow)
+MainView (Root Shell with dynamic ContentControl + modular bottom button bar)
 │
-├── 📷 1. Live Camera Scanner (`ScanView` & `ScanViewModel`)
-│     ├── Active Camera Viewport & Viewfinder overlay
-│     └── Status pill & continuous frame analyzer
+├── 📷 1. ScanView (DataContext: ScanViewModel)
+│     └── Fullscreen camera viewfinder & continuous frame analyzer
 │
-├── 📋 2. Scanned Result Page (`ScanResultView` & `ScanResultViewModel`)
-│     ├── State A: Success
+├── 📜 2. HistoryView (DataContext: HistoryViewModel)
+│     └── Searchable list of past scans with thumbnail previews & delete action
+│
+├── 📋 3. ScanResultView (DataContext: ScanResultViewModel)
+│     ├── State A: Success (from live scan, shared image, or history item click)
 │     │     ├── Image preview snapshot
 │     │     ├── Content type badge (Website, Wi-Fi Network, Email, Phone, Contact Card, Text)
 │     │     ├── Decoded text / structured content
 │     │     └── Contextual action buttons (Open Link, Connect to Wi-Fi, Copy, Share, Scan Again)
-│     └── State B: Failure (No QR code detected / unreadable image)
+│     └── State B: Failure (unreadable shared image)
 │           ├── Source image preview
 │           ├── Error explanation
 │           └── "Scan with camera" action button
 │
-├── 📜 3. Scan History (`HistoryView` & `HistoryViewModel`)
-│     ├── Searchable list of past scans with thumbnail previews
-│     └── Detail sheet with actions (Copy, Open, Connect, Share, Delete)
-│
-└── ℹ️ 4. About View (`AboutView` & `AboutViewModel`)
+└── ℹ️ 4. AboutView (DataContext: AboutViewModel)
       ├── App version & documentation
       └── Reset all data confirmation modal
 ```
@@ -42,62 +40,44 @@ Root Shell (MainView / MainWindow)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DecisionOnLaunch: App Started
+    [*] --> Scanner: Normal Launch
+    [*] --> ScannedResult: Shared Image Received
 
-    state DecisionOnLaunch <<choice>>
-    DecisionOnLaunch --> ScannedResult_Processing: Image Intent Received (Share Sheet / Open-With)
-    DecisionOnLaunch --> LiveScanner: Normal Launch (Icon tap)
-
-    state LiveScanner {
-        [*] --> CameraRunning: Start Camera & Analyzer
-        CameraRunning --> CameraRunning: Frame analysis
+    state Scanner {
+        [*] --> CameraRunning: Camera starts automatically
     }
 
-    state ScannedResult_Processing {
-        [*] --> DecodingSharedImage: Camera remains OFF
+    state ScannedResult {
+        [*] --> DisplayResult: Camera stops / stays off
     }
 
-    state ScannedResult_Page {
-        state SuccessResult {
-            [*] --> ShowResult: Display QR details & actions
-        }
-        state FailureResult {
-            [*] --> ShowError: "No QR code found" + Image + "Scan with camera"
-        }
+    state History {
+        [*] --> ListScans: Camera stops
     }
 
-    DecodingSharedImage --> SuccessResult: Valid QR found
-    DecodingSharedImage --> FailureResult: No QR found / corrupt image
+    state About {
+        [*] --> DisplayAbout: Camera stops
+    }
 
-    LiveScanner --> SuccessResult: QR detected in camera feed (Stops Camera)
-    LiveScanner --> HistoryTab: User taps History Tab (Stops Camera)
-    LiveScanner --> AboutView: User taps Info (Stops Camera)
+    Scanner --> ScannedResult: QR Detected in camera
+    Scanner --> History: Tap History Button
+    Scanner --> About: Tap About Info Button
 
-    ScannedResult_Page --> LiveScanner: Tap "Back" / "Scan again" / Android Back (Starts Camera)
-    HistoryTab --> LiveScanner: Tap "Scan" Tab (Starts Camera)
-    AboutView --> LiveScanner: Tap "Back" / Android Back (Starts Camera)
+    History --> ScannedResult: Tap History Record Item
+    History --> Scanner: Tap Scan Button
 
-    HistoryTab --> ScannedResult_Processing: Shared image received while in History (Bypasses Scanner)
-    LiveScanner --> ScannedResult_Processing: Shared image received while scanning (Stops Camera)
+    About --> Scanner: Tap Back Button / Android Back
+
+    ScannedResult --> Scanner: Tap Back / Scan Again (Camera resumes)
+    ScannedResult --> History: Tap Back (if navigated from History)
+
+    Any --> ScannedResult: New Shared Image Received
 ```
 
 ---
 
-## 4. Segue Rules & Lifecycle Management
+## 4. Lifecycle & Hardware Rules
 
-| Source State | Trigger Event | Destination State | Hardware & Lifecycle Actions |
-|---|---|---|---|
-| **App Launch** | Share Sheet (`ACTION_SEND`, `ACTION_VIEW`) | **Scanned Result Page** | **Do NOT start camera.** Parse intent URI with Android `ClipData` / stream, decode in background, navigate directly to Result (Success or Failure). |
-| **App Launch** | Icon tap (Normal) | **Live Scanner** | Initialize DB, start camera preview & frame analysis. |
-| **Live Scanner** | QR detected in camera frame | **Scanned Result Page (Success)** | **Stop camera preview & unbind CameraX**, save snapshot, show Scanned Page with actions. |
-| **Live Scanner** | Tap "History" tab or "About" | **History / About** | **Stop camera preview**. |
-| **Scanned Result Page** | Tap "Back", "Scan again", or Android hardware back | **Live Scanner** | Clear active result, return to scan tab, **start camera preview**. |
-| **Scanned Result Page** | New image shared from another app | **Scanned Result Page (New Result)** | Camera stays stopped; replace current result with new outcome. |
-
----
-
-## 5. Shared Ingest Pipeline (`ExternalImageHandler`)
-
-1. **Queueing Before UI**: On mobile platforms, the OS intent or URL open handler may arrive prior to Avalonia UI and ViewModel initialization. `ExternalImageHandler` buffers image byte arrays in an internal thread-safe queue.
-2. **Processing & Registration**: When `MainViewModel` initializes, it registers its handler which immediately drains any buffered payloads before starting the camera.
-3. **High-Resolution Progressive Decoding**: `QrDecoder.DecodeImageBytes` implements a multi-stage decoding strategy (1280px fast-path downscaling followed by native full-res fallback) on a threadpool worker to guarantee sub-50ms response times for large camera photos and high-DPI screenshots.
+- **Camera Rule**: `Scan.StartAsync()` runs **if and only if** `CurrentPage is ScanViewModel`. When switching to `HistoryViewModel`, `ScanResultViewModel`, or `AboutViewModel`, the camera automatically unbinds and native preview surfaces detach.
+- **Unified Detail Page**: Live camera scans, shared photos/screenshots, and history item clicks all route to the same `ScanResultView` / `ScanResultViewModel`.
+- **Navigation Bar Component**: The bottom button bar is only rendered when `IsNavBarVisible` (`CurrentPage is ScanViewModel or HistoryViewModel`), making it easy to style or replace with any custom button bar component.

@@ -9,62 +9,48 @@
     <UserControl.Resources>
         <views:HistoryImageConverter x:Key="HistoryImageConverter" />
     </UserControl.Resources>
-        <Grid>
-            <Grid RowDefinitions="Auto,*" IsVisible="{Binding !IsDetailVisible}">
-        <Grid Margin="16,16,16,10">
+
+    <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
+        <Grid Margin="16,0,16,12">
             <TextBox PlaceholderText="Search history..." Text="{Binding SearchText}" />
         </Grid>
-        <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0" ItemsSource="{Binding Records}" SelectedItem="{Binding SelectedRecord}">
+
+        <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0" ItemsSource="{Binding Records}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="models:ScanRecord">
                     <Grid ColumnDefinitions="56,*,Auto" Margin="16,6">
-                        <Border Width="48" Height="48" ClipToBounds="True">
-                            <Image Source="{Binding ImagePath, Converter={StaticResource HistoryImageConverter}}" Stretch="UniformToFill" />
-                        </Border>
-                        <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding RawText}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding ScannedAtUtc}" Opacity="0.6" FontSize="11" />
-                        </StackPanel>
-                        <Button Grid.Column="2" Command="{Binding $parent[UserControl].DataContext.RemoveCommand}" CommandParameter="{Binding}" ToolTip.Tip="Remove from history">
+                        <!-- Tap target to open detail page -->
+                        <Button Grid.Column="0" Grid.ColumnSpan="2"
+                                Command="{Binding $parent[UserControl].DataContext.OpenRecordCommand}"
+                                CommandParameter="{Binding}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch">
+                            <Grid ColumnDefinitions="56,*">
+                                <Border Width="48" Height="48" CornerRadius="8" ClipToBounds="True">
+                                    <Image Source="{Binding ImagePath, Converter={StaticResource HistoryImageConverter}}" Stretch="UniformToFill" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding RawText}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
+                                    <TextBlock Text="{Binding ScannedAtUtc}" Opacity="0.6" FontSize="11" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Grid.Column="2"
+                                Command="{Binding $parent[UserControl].DataContext.RemoveCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove from history"
+                                Padding="8"
+                                Background="Transparent"
+                                BorderThickness="0">
                             <lucide:LucideIcon Kind="Trash2" Size="18" />
                         </Button>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-            </Grid>
-
-            <Grid IsVisible="{Binding IsDetailVisible}" Margin="16">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
-            <Button Click="BackClick" HorizontalAlignment="Left" ToolTip.Tip="Back to history">
-                <lucide:LucideIcon Kind="ArrowLeft" Size="20" />
-            </Button>
-            <TextBlock Grid.Row="1" Text="Scan details" FontSize="26" FontWeight="Bold" Margin="0,18,0,14" />
-            <ScrollViewer Grid.Row="2">
-                <StackPanel Spacing="14">
-                    <Image Source="{Binding SelectedImage}" MaxHeight="300" Stretch="Uniform" />
-                    <TextBox Text="{Binding SelectedRecord.RawText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" />
-                    <TextBlock Text="{Binding SelectedRecord.ScannedAtUtc}" Opacity="0.6" />
-                </StackPanel>
-            </ScrollViewer>
-            <WrapPanel Grid.Row="3" Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" Margin="0,16,0,0">
-                <Button Command="{Binding CopyTextCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy text">
-                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Copy" Size="18" /><TextBlock Text="Copy" /></StackPanel>
-                </Button>
-                <Button Command="{Binding OpenLinkCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Open link">
-                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="ExternalLink" Size="18" /><TextBlock Text="Open link" /></StackPanel>
-                </Button>
-                <Button Command="{Binding ConnectWifiCommand}" IsVisible="{Binding IsWifiSelected}" IsEnabled="{Binding IsWifiConnectSupported}" ToolTip.Tip="Connect to Wi-Fi">
-                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Wifi" Size="18" /><TextBlock Text="Connect" /></StackPanel>
-                </Button>
-                <Button Command="{Binding ShareCommand}" IsVisible="{Binding IsShareSupported}" ToolTip.Tip="Share image">
-                    <StackPanel Orientation="Horizontal" Spacing="6"><lucide:LucideIcon Kind="Share2" Size="18" /><TextBlock Text="Share image" /></StackPanel>
-                </Button>
-                <Button Command="{Binding DeleteCommand}" ToolTip.Tip="Remove from history">
-                    <lucide:LucideIcon Kind="Trash2" Size="18" />
-                </Button>
-            </WrapPanel>
-        </Grid>
-            </Grid>
-        </Grid>
+    </Grid>
 </UserControl>

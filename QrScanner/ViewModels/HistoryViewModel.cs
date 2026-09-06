@@ -2,9 +2,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Input.Platform;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QrScanner.Models;
@@ -15,30 +12,17 @@ namespace QrScanner.ViewModels;
 public partial class HistoryViewModel : ViewModelBase
 {
     private readonly IDatabaseService _db;
+    private readonly Action<ScanRecord> _onRecordSelected;
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial ScanRecord? SelectedRecord { get; set; }
-
-    [ObservableProperty]
-    public partial Bitmap? SelectedImage { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsWifiSelected { get; set; }
-
-    public bool IsWifiConnectSupported { get; } = PlatformServices.WifiConnectorFactory is not null;
-
-    public bool IsShareSupported => PlatformServices.ShareFactory is not null;
-
-    public bool IsDetailVisible => SelectedRecord is not null;
-
     public ObservableCollection<ScanRecord> Records { get; } = [];
 
-    public HistoryViewModel(IDatabaseService db)
+    public HistoryViewModel(IDatabaseService db, Action<ScanRecord> onRecordSelected)
     {
         _db = db;
+        _onRecordSelected = onRecordSelected;
     }
 
     public async Task LoadAsync()
@@ -56,69 +40,11 @@ public partial class HistoryViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value) => _ = LoadAsync();
 
-    partial void OnSelectedRecordChanged(ScanRecord? value)
-    {
-        SelectedImage?.Dispose();
-        SelectedImage = value is not null && File.Exists(value.ImagePath)
-            ? new Bitmap(value.ImagePath)
-            : null;
-        IsWifiSelected = value is not null && QrContentParser.Parse(value.RawText).Wifi is not null;
-        OnPropertyChanged(nameof(IsDetailVisible));
-    }
-
     [RelayCommand]
-    private async Task CopyTextAsync(TopLevel? topLevel)
+    private void OpenRecord(ScanRecord? record)
     {
-        if (SelectedRecord is not null && topLevel?.Clipboard is { } clipboard)
-        {
-            await clipboard.SetTextAsync(SelectedRecord.RawText).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenLinkAsync(TopLevel? topLevel)
-    {
-        if (SelectedRecord is null || topLevel?.Launcher is null)
-        {
-            return;
-        }
-
-        var parsed = QrContentParser.Parse(SelectedRecord.RawText);
-        if (parsed.ActionUri is not null)
-        {
-            await topLevel.Launcher.LaunchUriAsync(new Uri(parsed.ActionUri)).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ConnectWifiAsync()
-    {
-        if (SelectedRecord is null)
-        {
-            return;
-        }
-
-        var wifi = QrContentParser.Parse(SelectedRecord.RawText).Wifi;
-        if (wifi is null)
-        {
-            return;
-        }
-
-        var connector = PlatformServices.WifiConnectorFactory?.Invoke();
-        if (connector is not null)
-        {
-            await connector.ConnectAsync(wifi).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task DeleteAsync()
-    {
-        if (SelectedRecord is not null)
-        {
-            await RemoveAsync(SelectedRecord).ConfigureAwait(true);
-            SelectedRecord = null;
-        }
+        if (record is not null)
+            _onRecordSelected(record);
     }
 
     [RelayCommand]
@@ -146,18 +72,6 @@ public partial class HistoryViewModel : ViewModelBase
                 File.Delete(record.ImagePath);
         }
 
-        SelectedRecord = null;
         await LoadAsync().ConfigureAwait(true);
-    }
-
-    [RelayCommand]
-    private async Task ShareAsync()
-    {
-        if (SelectedRecord is not null && File.Exists(SelectedRecord.ImagePath))
-        {
-            var share = PlatformServices.ShareFactory?.Invoke();
-            if (share is not null)
-                await share.ShareImageAsync(SelectedRecord.ImagePath).ConfigureAwait(true);
-        }
     }
 }
