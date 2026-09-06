@@ -99,7 +99,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public async Task ProcessSharedImageAsync(byte[] imageBytes)
     {
-        await Dispatcher.UIThread.InvokeAsync(() =>
+        Dispatcher.UIThread.Post(() =>
         {
             _ = Scan.StopAsync();
         });
@@ -122,7 +122,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             };
             await _db.InsertAsync(record).ConfigureAwait(false);
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            Dispatcher.UIThread.Post(() =>
             {
                 CurrentPage = ScanResultViewModel.CreateSuccess(
                     rawText,
@@ -133,7 +133,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
         else
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            Dispatcher.UIThread.Post(() =>
             {
                 CurrentPage = ScanResultViewModel.CreateFailure(
                     imageBytes,
