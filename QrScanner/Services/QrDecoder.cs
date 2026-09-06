@@ -9,7 +9,7 @@ namespace QrScanner.Services;
 /// <summary>Shared QR decoding logic used by every platform's camera capture implementation.</summary>
 public static class QrDecoder
 {
-    private static readonly BarcodeReader Reader = new()
+    private static BarcodeReader CreateReader() => new()
     {
         AutoRotate = true,
         Options = new DecodingOptions
@@ -25,7 +25,8 @@ public static class QrDecoder
     {
         try
         {
-            return Reader.Decode(bitmap)?.Text;
+            var reader = CreateReader();
+            return reader.Decode(bitmap)?.Text;
         }
         catch
         {
@@ -39,9 +40,12 @@ public static class QrDecoder
     /// </summary>
     public static (string? RawText, byte[]? JpegBytes) DecodeImageBytes(byte[] imageBytes)
     {
+        if (imageBytes is null || imageBytes.Length == 0)
+            return (null, null);
+
         try
         {
-            using var original = SKBitmap.Decode(imageBytes);
+            using var original = DecodeWithAutoOrientation(imageBytes);
             if (original is null)
                 return (null, null);
 
@@ -55,14 +59,14 @@ public static class QrDecoder
                 var targetW = Math.Max(1, (int)Math.Round(original.Width * scale));
                 var targetH = Math.Max(1, (int)Math.Round(original.Height * scale));
 
-                using var downscaled = original.Resize(new SKImageInfo(targetW, targetH), SKSamplingOptions.Default);
+                using var downscaled = original.Resize(new SKImageInfo(targetW, targetH, SKColorType.Rgba8888, SKAlphaType.Premul), SKSamplingOptions.Default);
                 if (downscaled is not null)
                 {
                     text = TryDecode(downscaled);
                 }
             }
 
-            // Step 2: Fallback to full resolution if the downscaled attempt didn't find a code
+            // Step 2: Fallback to full resolution if downscale attempt did not find a code
             if (string.IsNullOrEmpty(text))
             {
                 text = TryDecode(original);
@@ -82,16 +86,23 @@ public static class QrDecoder
                 var scale = 1600.0f / maxDim;
                 var targetW = Math.Max(1, (int)Math.Round(original.Width * scale));
                 var targetH = Math.Max(1, (int)Math.Round(original.Height * scale));
-                displayBitmap = original.Resize(new SKImageInfo(targetW, targetH), SKSamplingOptions.Default) ?? original;
+                displayBitmap = original.Resize(new SKImageInfo(targetW, targetH, SKColorType.Rgba8888, SKAlphaType.Premul), SKSamplingOptions.Default) ?? original;
                 shouldDisposeDisplay = !ReferenceEquals(displayBitmap, original);
             }
 
             try
             {
                 using var image = SKImage.FromBitmap(displayBitmap);
-                using var data = image.Encode(SKEncodedImageFormat.Jpeg, 85);
-                var jpegBytes = data.ToArray();
-                return (text, jpegBytes);
+                if (image is not null)
+                {
+                    using var data = image.Encode(SKEncodedImageFormat.Jpeg, 85);
+                    if (data is not null)
+                    {
+                        var jpegBytes = data.ToArray();
+                        return (text, jpegBytes);
+                    }
+                }
+                return (text, imageBytes);
             }
             finally
             {
@@ -105,5 +116,59 @@ public static class QrDecoder
         {
             return (null, null);
         }
+    }
+
+    private static SKBitmap? DecodeWithAutoOrientation(byte[] bytes)
+    {
+        try
+        {
+            using var stream = new SKMemoryStream(bytes);
+            using var codec = SKCodec.Create(stream);
+            if (codec is null)
+            {
+                return SKBitmap.Decode(bytes);
+            }
+
+            var origin = codec.EncodedOrigin;
+            var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            var bitmap = new SKBitmap(info);
+
+            var result = codec.GetPixels(info, bitmap.GetPixels());
+            if (result != SKCodecResult.Success && result != SKCodecResult.IncompleteInput)
+            {
+                bitmap.Dispose();
+                return SKBitmap.Decode(bytes);
+            }
+
+            return origin switch
+            {
+                SKEncodedOrigin.RightTop => Rotate(bitmap, 90),
+                SKEncodedOrigin.BottomRight => Rotate(bitmap, 180),
+                SKEncodedOrigin.LeftBottom => Rotate(bitmap, 270),
+                _ => bitmap
+            };
+        }
+        catch
+        {
+            return SKBitmap.Decode(bytes);
+        }
+    }
+
+    private static SKBitmap Rotate(SKBitmap source, float degrees)
+    {
+        bool swap = degrees is 90 or 270;
+        int targetW = swap ? source.Height : source.Width;
+        int targetH = swap ? source.Width : source.Height;
+
+        var rotated = new SKBitmap(new SKImageInfo(targetW, targetH, source.ColorType, source.AlphaType));
+        using (var canvas = new SKCanvas(rotated))
+        {
+            canvas.Translate(targetW / 2f, targetH / 2f);
+            canvas.RotateDegrees(degrees);
+            canvas.Translate(-source.Width / 2f, -source.Height / 2f);
+            canvas.DrawBitmap(source, 0, 0);
+        }
+        source.Dispose();
+        return rotated;
     }
 }

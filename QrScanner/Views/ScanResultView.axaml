@@ -128,7 +128,7 @@
                 </StackPanel>
 
                 <!-- FAILURE VIEW -->
-                <StackPanel IsVisible="{Binding !IsSuccess}" Spacing="16" Margin="0,16,0,0" HorizontalAlignment="Center">
+                <StackPanel IsVisible="{Binding IsSuccess, Converter={x:Static BoolConverters.Not}}" Spacing="16" Margin="0,16,0,0" HorizontalAlignment="Center">
                     <lucide:LucideIcon Kind="CircleAlert" Size="48" Foreground="#E53935" HorizontalAlignment="Center" />
                     <TextBlock Text="{Binding ErrorMessage}"
                                FontSize="20"
