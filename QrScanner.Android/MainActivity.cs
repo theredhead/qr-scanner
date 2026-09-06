@@ -65,6 +65,11 @@ public class MainActivity : AvaloniaMainActivity
 
     protected override void OnNewIntent(Intent? intent)
     {
+        if (intent is not null && IsExternalImageIntent(intent))
+        {
+            MainView.Current?.PrepareForExternalImageIntent();
+        }
+
         base.OnNewIntent(intent);
         Intent = intent;
         if (intent is not null)
@@ -73,12 +78,19 @@ public class MainActivity : AvaloniaMainActivity
         }
     }
 
+    private static bool IsExternalImageIntent(Intent intent) =>
+        intent.Action is Intent.ActionSend or Intent.ActionSendMultiple or Intent.ActionView;
+
     private void HandleIntent(Intent intent)
     {
         var action = intent.Action;
         Log.Info(Tag, $"HandleIntent received action: {action}, type: {intent.Type}");
 
-        if (action == Intent.ActionSend)
+        if (action == Intent.ActionMain)
+        {
+            MainView.Current?.NavigateToScan();
+        }
+        else if (action == Intent.ActionSend)
         {
             global::Android.Net.Uri? uri = null;
 

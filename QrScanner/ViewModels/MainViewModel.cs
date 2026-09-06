@@ -39,7 +39,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         else
         {
             _currentPage = Scan;
-            _ = Scan.StartAsync();
         }
 
         ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
@@ -85,6 +84,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     [RelayCommand]
     public void NavigateToAbout() => CurrentPage = About;
+
+    public void ActivateCurrentPage()
+    {
+        if (CurrentPage is ScanViewModel)
+        {
+            _ = Scan.StartAsync();
+        }
+    }
+
+    public void PrepareForExternalImageIntent()
+    {
+        Scan.PrepareForExternalImageIntent();
+    }
 
     private void OnLiveScanCompleted(ScanRecord record, byte[] jpegBytes)
     {

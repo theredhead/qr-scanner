@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -12,11 +13,14 @@ namespace QrScanner.ViewModels;
 public sealed partial class ScanViewModel : ViewModelBase, IDisposable
 {
     private readonly IDatabaseService _db;
-    private readonly ICameraScanService? _camera;
     private readonly Action<ScanRecord, byte[]> _onScanCompleted;
+    private readonly SemaphoreSlim _cameraGate = new(1, 1);
+    private ICameraScanService? _camera;
 
     private string? _lastRawText;
     private DateTime _lastDetectedAtUtc;
+    private volatile bool _shouldRunCamera;
+    private bool _isCameraRunning;
 
     [ObservableProperty]
     public partial Control? PreviewControl { get; set; }
@@ -24,49 +28,53 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Point the camera at a QR code";
 
-    private bool _isCameraRunning;
-
     public ScanViewModel(IDatabaseService db, Action<ScanRecord, byte[]> onScanCompleted)
     {
         _db = db;
         _onScanCompleted = onScanCompleted;
-        _camera = PlatformServices.CameraFactory?.Invoke();
-
-        if (_camera is not null)
-        {
-            _camera.QrDetected += OnQrDetected;
-        }
+        EnsureCamera();
     }
 
     public async Task StartAsync()
     {
-        if (_camera is null || _isCameraRunning)
+        EnsureCamera();
+
+        if (_camera is null)
         {
             return;
         }
 
-        _isCameraRunning = true;
+        _shouldRunCamera = true;
+        await _cameraGate.WaitAsync().ConfigureAwait(true);
 
         try
         {
-            if (!await _camera.RequestPermissionAsync().ConfigureAwait(true))
+            if (!_shouldRunCamera || _isCameraRunning)
             {
-                StatusMessage = "Camera permission was denied.";
-                _isCameraRunning = false;
                 return;
             }
 
-            if (!_isCameraRunning)
+            if (!await _camera.RequestPermissionAsync().ConfigureAwait(true))
+            {
+                StatusMessage = "Camera permission was denied.";
+                _shouldRunCamera = false;
+                return;
+            }
+
+            if (!_shouldRunCamera)
                 return;
 
             StatusMessage = "Point the camera at a QR code";
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                if (_isCameraRunning)
+                if (_shouldRunCamera)
+                {
+                    PreviewControl = null;
                     PreviewControl = _camera.CreatePreviewControl();
+                }
             });
 
-            if (!_isCameraRunning)
+            if (!_shouldRunCamera)
             {
                 await Dispatcher.UIThread.InvokeAsync(() => PreviewControl = null);
                 return;
@@ -74,47 +82,116 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
 
             await _camera.StartAsync().ConfigureAwait(true);
 
-            if (!_isCameraRunning)
+            if (!_shouldRunCamera)
             {
                 await _camera.StopAsync().ConfigureAwait(true);
                 await Dispatcher.UIThread.InvokeAsync(() => PreviewControl = null);
+                return;
             }
+
+            _isCameraRunning = true;
         }
         catch
         {
             _isCameraRunning = false;
-            StatusMessage = "Failed to start camera.";
+            if (_shouldRunCamera)
+            {
+                StatusMessage = "Failed to start camera.";
+            }
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 PreviewControl = null;
             });
         }
+        finally
+        {
+            _cameraGate.Release();
+        }
     }
 
     public async Task StopAsync()
     {
-        _isCameraRunning = false;
+        _shouldRunCamera = false;
 
-        if (_camera is not null)
+        await _cameraGate.WaitAsync().ConfigureAwait(true);
+
+        try
         {
-            try
+            if (_shouldRunCamera)
             {
-                await _camera.StopAsync().ConfigureAwait(true);
+                return;
             }
-            catch
-            {
-                // Ignore stop errors
-            }
-        }
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
+            if (_camera is not null)
+            {
+                try
+                {
+                    await _camera.StopAsync().ConfigureAwait(true);
+                }
+                catch
+                {
+                    // Ignore stop errors
+                }
+            }
+
+            _isCameraRunning = false;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!_shouldRunCamera)
+                {
+                    PreviewControl = null;
+                }
+            });
+        }
+        finally
+        {
+            _cameraGate.Release();
+        }
+    }
+
+    public void PrepareForExternalImageIntent()
+    {
+        _shouldRunCamera = false;
+        _isCameraRunning = false;
+        ClearPreviewControl();
+
+        _ = StopAsync();
+    }
+
+    private void ClearPreviewControl()
+    {
+        if (Dispatcher.UIThread.CheckAccess())
         {
             PreviewControl = null;
-        });
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => PreviewControl = null);
+        }
+    }
+
+    private void EnsureCamera()
+    {
+        if (_camera is not null)
+        {
+            return;
+        }
+
+        _camera = PlatformServices.CameraFactory?.Invoke();
+        if (_camera is not null)
+        {
+            _camera.QrDetected += OnQrDetected;
+        }
     }
 
     private async void OnQrDetected(object? sender, QrDetectedEventArgs e)
     {
+        if (!_shouldRunCamera)
+        {
+            return;
+        }
+
         if (e.RawText == _lastRawText && DateTime.UtcNow - _lastDetectedAtUtc < TimeSpan.FromSeconds(3))
         {
             return;
@@ -152,5 +229,6 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
             _camera.QrDetected -= OnQrDetected;
             _camera.Dispose();
         }
+        _cameraGate.Dispose();
     }
 }

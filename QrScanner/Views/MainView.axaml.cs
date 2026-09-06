@@ -21,6 +21,8 @@ public partial class MainView : UserControl
 
         AddHandler(DragDrop.DropEvent, OnDrop);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
+
+        Loaded += (_, _) => (DataContext as MainViewModel)?.ActivateCurrentPage();
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -53,6 +55,12 @@ public partial class MainView : UserControl
     {
         e.DragEffects = DragDropEffects.Copy;
     }
+
+    public void NavigateToScan() =>
+        (DataContext as MainViewModel)?.NavigateToScan();
+
+    public void PrepareForExternalImageIntent() =>
+        (DataContext as MainViewModel)?.PrepareForExternalImageIntent();
 
     public bool TryNavigateBack() =>
         (DataContext as MainViewModel)?.TryNavigateBack() == true;

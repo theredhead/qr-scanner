@@ -159,11 +159,38 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
                 }
             }
 
+            if (!_shouldBeRunning)
+            {
+                _cameraProvider?.UnbindAll();
+                _activity.RunOnUiThread(() =>
+                {
+                    if (previewView.Handle != IntPtr.Zero)
+                    {
+                        previewView.Visibility = global::Android.Views.ViewStates.Gone;
+                    }
+                });
+                return;
+            }
+
             if (_cameraProvider is not null && _activity is ILifecycleOwner lifecycleOwner && preview is not null && analysis is not null)
             {
                 _cameraProvider.UnbindAll();
                 var camera = _cameraProvider.BindToLifecycle(lifecycleOwner, CameraSelector.DefaultBackCamera!, preview, analysis);
-                Log.Info("QrScanner", $"Camera bound successfully: {camera}");
+                if (_shouldBeRunning)
+                {
+                    Log.Info("QrScanner", $"Camera bound successfully: {camera}");
+                }
+                else
+                {
+                    _cameraProvider.UnbindAll();
+                    _activity.RunOnUiThread(() =>
+                    {
+                        if (previewView.Handle != IntPtr.Zero)
+                        {
+                            previewView.Visibility = global::Android.Views.ViewStates.Gone;
+                        }
+                    });
+                }
             }
         }
         catch (Exception ex)
@@ -198,6 +225,11 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
         try
         {
+            if (!_shouldBeRunning)
+            {
+                return;
+            }
+
             if (!_hasLoggedFrame)
             {
                 _hasLoggedFrame = true;
