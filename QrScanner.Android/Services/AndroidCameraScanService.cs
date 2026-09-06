@@ -136,17 +136,35 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
                 return;
             }
 
-            var preview = new Preview.Builder().Build();
-            preview.SetSurfaceProvider(ContextCompat.GetMainExecutor(_activity)!, previewView.SurfaceProvider);
+            var preview = new Preview.Builder()?.Build();
+            if (preview is not null && previewView.SurfaceProvider is not null)
+            {
+                var executor = ContextCompat.GetMainExecutor(_activity);
+                if (executor is not null)
+                {
+                    preview.SetSurfaceProvider(executor, previewView.SurfaceProvider);
+                }
+            }
 
             var analysis = new ImageAnalysis.Builder()
-                .SetBackpressureStrategy(ImageAnalysis.StrategyKeepOnlyLatest)
-                .Build();
-            analysis.SetAnalyzer(ContextCompat.GetMainExecutor(_activity)!, this);
+                ?.SetBackpressureStrategy(ImageAnalysis.StrategyKeepOnlyLatest)
+                ?.Build();
 
-            _cameraProvider!.UnbindAll();
-            var camera = _cameraProvider.BindToLifecycle((ILifecycleOwner)_activity, CameraSelector.DefaultBackCamera, preview, analysis);
-            Log.Info("QrScanner", $"Camera bound successfully: {camera}");
+            if (analysis is not null)
+            {
+                var executor = ContextCompat.GetMainExecutor(_activity);
+                if (executor is not null)
+                {
+                    analysis.SetAnalyzer(executor, this);
+                }
+            }
+
+            if (_cameraProvider is not null && _activity is ILifecycleOwner lifecycleOwner && preview is not null && analysis is not null)
+            {
+                _cameraProvider.UnbindAll();
+                var camera = _cameraProvider.BindToLifecycle(lifecycleOwner, CameraSelector.DefaultBackCamera!, preview, analysis);
+                Log.Info("QrScanner", $"Camera bound successfully: {camera}");
+            }
         }
         catch (Exception ex)
         {
@@ -173,8 +191,11 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
     public int TargetCoordinateSystem => 0;
 
-    public void Analyze(IImageProxy image)
+    public void Analyze(IImageProxy? image)
     {
+        if (image is null)
+            return;
+
         try
         {
             if (!_hasLoggedFrame)
