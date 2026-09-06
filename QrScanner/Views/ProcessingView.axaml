@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             x:Class="QrScanner.Views.ProcessingView"
+             x:DataType="vm:ProcessingViewModel"
+             Background="{DynamicResource SystemRegionBrush}">
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="20" HorizontalAlignment="Center" MaxWidth="300">
+            <Border Background="{DynamicResource SystemAccentColor}"
+                    Width="64" Height="64"
+                    CornerRadius="32"
+                    HorizontalAlignment="Center">
+                <lucide:LucideIcon Kind="Scan" Size="32" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            </Border>
+
+            <TextBlock Text="{Binding Message}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       TextAlignment="Center" />
+
+            <ProgressBar IsIndeterminate="True"
+                         Width="200"
+                         Height="4"
+                         HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

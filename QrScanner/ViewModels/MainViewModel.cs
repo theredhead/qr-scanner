@@ -32,14 +32,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         History = new HistoryViewModel(_db, OnHistoryRecordSelected);
         About = new AboutViewModel(History, NavigateToScan);
 
-        _currentPage = Scan;
-
-        ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
-
-        if (!ExternalImageHandler.IsIngesting)
+        if (ExternalImageHandler.IsIngesting)
         {
+            _currentPage = new ProcessingViewModel("Scanning shared image...");
+        }
+        else
+        {
+            _currentPage = Scan;
             _ = Scan.StartAsync();
         }
+
+        ExternalImageHandler.RegisterReceiver(ProcessSharedImageAsync);
     }
 
     partial void OnCurrentPageChanged(ViewModelBase value)
@@ -102,6 +105,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         Dispatcher.UIThread.Post(() =>
         {
             _ = Scan.StopAsync();
+            CurrentPage = new ProcessingViewModel("Scanning shared image...");
         });
 
         var (rawText, jpegBytes) = await Task.Run(() => QrDecoder.DecodeImageBytes(imageBytes)).ConfigureAwait(false);
@@ -145,7 +149,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool TryNavigateBack()
     {
-        if (CurrentPage is ScanResultViewModel or AboutViewModel)
+        if (CurrentPage is ScanResultViewModel or AboutViewModel or ProcessingViewModel)
         {
             NavigateToScan();
             return true;

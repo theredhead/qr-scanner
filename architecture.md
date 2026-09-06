@@ -15,10 +15,13 @@ MainView (Root Shell with dynamic ContentControl + modular bottom button bar)
 ├── 📷 1. ScanView (DataContext: ScanViewModel)
 │     └── Fullscreen camera viewfinder & continuous frame analyzer
 │
-├── 📜 2. HistoryView (DataContext: HistoryViewModel)
+├── ⏳ 2. ProcessingView (DataContext: ProcessingViewModel)
+│     └── Simple non-camera loading state while a shared image is being decoded
+│
+├── 📜 3. HistoryView (DataContext: HistoryViewModel)
 │     └── Searchable list of past scans with thumbnail previews & delete action
 │
-├── 📋 3. ScanResultView (DataContext: ScanResultViewModel)
+├── 📋 4. ScanResultView (DataContext: ScanResultViewModel)
 │     ├── State A: Success (from live scan, shared image, or history item click)
 │     │     ├── Image preview snapshot
 │     │     ├── Content type badge (Website, Wi-Fi Network, Email, Phone, Contact Card, Text)
@@ -29,7 +32,7 @@ MainView (Root Shell with dynamic ContentControl + modular bottom button bar)
 │           ├── Error explanation
 │           └── "Scan with camera" action button
 │
-└── ℹ️ 4. AboutView (DataContext: AboutViewModel)
+└── ℹ️ 5. AboutView (DataContext: AboutViewModel)
       ├── App version & documentation
       └── Reset all data confirmation modal
 ```
@@ -41,10 +44,14 @@ MainView (Root Shell with dynamic ContentControl + modular bottom button bar)
 ```mermaid
 stateDiagram-v2
     [*] --> Scanner: Normal Launch
-    [*] --> ScannedResult: Shared Image Received
+    [*] --> Processing: Shared Image Received
 
     state Scanner {
         [*] --> CameraRunning: Camera starts automatically
+    }
+
+    state Processing {
+        [*] --> DecodingImage: Camera stays OFF, shows progress indicator
     }
 
     state ScannedResult {
@@ -68,10 +75,12 @@ stateDiagram-v2
 
     About --> Scanner: Tap Back Button / Android Back
 
+    Processing --> ScannedResult: Decoding completed (Success or Failure)
+
     ScannedResult --> Scanner: Tap Back / Scan Again (Camera resumes)
     ScannedResult --> History: Tap Back (if navigated from History)
 
-    Any --> ScannedResult: New Shared Image Received
+    Any --> Processing: New Shared Image Received
 ```
 
 ---
