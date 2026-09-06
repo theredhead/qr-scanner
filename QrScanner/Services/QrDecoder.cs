@@ -35,7 +35,7 @@ public static class QrDecoder
     }
 
     /// <summary>
-    /// Decodes a QR code from raw image bytes (JPEG, PNG, HEIC, WebP, etc.) quickly using progressive downscaling.
+    /// Decodes a QR code from raw image bytes (JPEG, PNG, HEIC, WebP, etc.) quickly using progressive multi-stage decoding.
     /// Returns the decoded raw QR text and an optimized JPEG representation for storage/display.
     /// </summary>
     public static (string? RawText, byte[]? JpegBytes) DecodeImageBytes(byte[] imageBytes)
@@ -52,24 +52,54 @@ public static class QrDecoder
             var maxDim = Math.Max(original.Width, original.Height);
             string? text = null;
 
-            // Step 1: If the image is large (> 1280px), scan a downscaled version first (fast path ~10-25ms)
+            // Target candidate bitmap to test
+            SKBitmap candidateBitmap;
+            bool shouldDisposeCandidate = false;
+
             if (maxDim > 1280)
             {
                 var scale = 1280.0f / maxDim;
                 var targetW = Math.Max(1, (int)Math.Round(original.Width * scale));
                 var targetH = Math.Max(1, (int)Math.Round(original.Height * scale));
-
-                using var downscaled = original.Resize(new SKImageInfo(targetW, targetH, SKColorType.Rgba8888, SKAlphaType.Premul), SKSamplingOptions.Default);
-                if (downscaled is not null)
-                {
-                    text = TryDecode(downscaled);
-                }
+                candidateBitmap = original.Resize(new SKImageInfo(targetW, targetH, SKColorType.Rgba8888, SKAlphaType.Premul), SKSamplingOptions.Default) ?? original;
+                shouldDisposeCandidate = !ReferenceEquals(candidateBitmap, original);
+            }
+            else
+            {
+                candidateBitmap = original;
             }
 
-            // Step 2: Fallback to full resolution if downscale attempt did not find a code
-            if (string.IsNullOrEmpty(text))
+            try
             {
-                text = TryDecode(original);
+                // Pass 1: Standard downscaled decode (~15ms)
+                text = TryDecode(candidateBitmap);
+
+                // Pass 2: Anti-moire / slight blur filter (~20ms)
+                // When photos are taken of monitors, TVs, or other phone screens, subpixel grids create moire patterns
+                // that distort standard binarizers. A gentle 1.0px blur smooths screen frequency noise while preserving QR modules.
+                if (string.IsNullOrEmpty(text))
+                {
+                    using var smoothed = new SKBitmap(candidateBitmap.Width, candidateBitmap.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+                    using (var canvas = new SKCanvas(smoothed))
+                    using (var paint = new SKPaint { ImageFilter = SKImageFilter.CreateBlur(1.0f, 1.0f) })
+                    {
+                        canvas.DrawBitmap(candidateBitmap, 0, 0, SKSamplingOptions.Default, paint);
+                    }
+                    text = TryDecode(smoothed);
+                }
+
+                // Pass 3: Fallback to full native resolution
+                if (string.IsNullOrEmpty(text) && !ReferenceEquals(candidateBitmap, original))
+                {
+                    text = TryDecode(original);
+                }
+            }
+            finally
+            {
+                if (shouldDisposeCandidate)
+                {
+                    candidateBitmap.Dispose();
+                }
             }
 
             if (string.IsNullOrEmpty(text))
@@ -77,7 +107,7 @@ public static class QrDecoder
                 return (null, null);
             }
 
-            // Step 3: Produce an optimized JPEG for disk storage and UI preview (capped at 1600px)
+            // Produce an optimized JPEG for disk storage and UI preview (capped at 1600px)
             SKBitmap displayBitmap = original;
             bool shouldDisposeDisplay = false;
 

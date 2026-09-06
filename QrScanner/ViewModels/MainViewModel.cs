@@ -68,7 +68,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    public void NavigateToScan() => CurrentPage = Scan;
+    public void NavigateToScan()
+    {
+        if (CurrentPage is ScanViewModel)
+        {
+            _ = Scan.StartAsync();
+        }
+        else
+        {
+            CurrentPage = Scan;
+        }
+    }
 
     [RelayCommand]
     public void NavigateToHistory() => CurrentPage = History;
