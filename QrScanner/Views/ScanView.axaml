@@ -16,7 +16,7 @@
         <!-- Viewfinder Box & Helper Overlay -->
         <Grid Background="Transparent">
             <Border Width="260" Height="260"
-                    BorderBrush="{DynamicResource SystemAccentColor}"
+                    BorderBrush="{StaticResource ScannerZeroAccentBrush}"
                     BorderThickness="3"
                     CornerRadius="20"
                     HorizontalAlignment="Center"

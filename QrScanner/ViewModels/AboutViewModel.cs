@@ -3,20 +3,16 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Platform;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using QrScanner.Services;
 
 namespace QrScanner.ViewModels;
 
 public sealed partial class AboutViewModel : ViewModelBase
 {
-    private readonly HistoryViewModel _history;
     private readonly Action _onBack;
 
-    public AboutViewModel(HistoryViewModel history, Action onBack)
+    public AboutViewModel(Action onBack)
     {
-        _history = history;
         _onBack = onBack;
     }
 
@@ -25,24 +21,8 @@ public sealed partial class AboutViewModel : ViewModelBase
     public Uri RepositoryUri { get; } = new("https://github.com/theredhead/qr-scanner");
     public Uri LicenseUri { get; } = new("https://github.com/theredhead/qr-scanner/blob/main/LICENSE");
 
-    [ObservableProperty]
-    public partial bool IsResetConfirmationVisible { get; set; }
-
     [RelayCommand]
     private void Back() => _onBack();
-
-    [RelayCommand]
-    private void RequestReset() => IsResetConfirmationVisible = true;
-
-    [RelayCommand]
-    private void CancelReset() => IsResetConfirmationVisible = false;
-
-    [RelayCommand]
-    private async Task ConfirmResetAsync()
-    {
-        IsResetConfirmationVisible = false;
-        await _history.ResetAllAsync();
-    }
 
     [RelayCommand]
     private async Task OpenRepositoryAsync(Avalonia.Controls.TopLevel? topLevel)

@@ -31,9 +31,12 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     private readonly Activity _activity;
     private PreviewView? _previewView;
     private global::Android.Widget.FrameLayout? _container;
+    private PinchZoomTouchListener? _pinchZoomTouchListener;
+    private ICamera? _camera;
     private ProcessCameraProvider? _cameraProvider;
     private IExecutorService? _analysisExecutor;
     private DateTime _lastDecodeAttemptUtc = DateTime.MinValue;
+    private float _linearZoom;
     private bool _hasLoggedFrame;
     private volatile bool _shouldBeRunning;
 
@@ -86,6 +89,9 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             global::Android.Views.ViewGroup.LayoutParams.MatchParent));
 
         var overlay = new ViewfinderOverlayView(_activity);
+        _pinchZoomTouchListener ??= new PinchZoomTouchListener(_activity, AdjustZoom);
+        overlay.Clickable = true;
+        overlay.SetOnTouchListener(_pinchZoomTouchListener);
         _container.AddView(overlay, new global::Android.Widget.FrameLayout.LayoutParams(
             global::Android.Views.ViewGroup.LayoutParams.MatchParent,
             global::Android.Views.ViewGroup.LayoutParams.MatchParent));
@@ -176,6 +182,8 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             {
                 _cameraProvider.UnbindAll();
                 var camera = _cameraProvider.BindToLifecycle(lifecycleOwner, CameraSelector.DefaultBackCamera!, preview, analysis);
+                _camera = camera;
+                ApplyZoom(_linearZoom);
                 if (_shouldBeRunning)
                 {
                     Log.Info("QrScanner", $"Camera bound successfully: {camera}");
@@ -211,6 +219,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             }
         });
         _cameraProvider?.UnbindAll();
+        _camera = null;
         return Task.CompletedTask;
     }
 
@@ -243,16 +252,18 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             }
             _lastDecodeAttemptUtc = now;
 
-            using var bitmap = YPlaneToGrayscaleBitmap(image);
-            if (bitmap is null)
+            using var cameraBitmap = YPlaneToGrayscaleBitmap(image);
+            if (cameraBitmap is null)
             {
                 return;
             }
 
-            var result = await QrDecoder.Scan(bitmap).ConfigureAwait(false);
+            var result = await QrDecoder.Scan(cameraBitmap).ConfigureAwait(false);
             if (result.IsSuccess && result.RawText is not null)
             {
-                using var jpeg = bitmap.Encode(SKEncodedImageFormat.Jpeg, 85);
+                using var rotatedBitmap = RotateToDisplayOrientation(cameraBitmap, image.ImageInfo?.RotationDegrees ?? 0);
+                var bitmapToSave = rotatedBitmap ?? cameraBitmap;
+                using var jpeg = bitmapToSave.Encode(SKEncodedImageFormat.Jpeg, 85);
                 QrDetected?.Invoke(this, new QrDetectedEventArgs
                 {
                     RawText = result.RawText,
@@ -325,6 +336,28 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
         return bitmap;
     }
 
+    private static SKBitmap? RotateToDisplayOrientation(SKBitmap source, int degrees)
+    {
+        degrees = ((degrees % 360) + 360) % 360;
+        if (degrees == 0)
+        {
+            return null;
+        }
+
+        var swapDimensions = degrees is 90 or 270;
+        var targetWidth = swapDimensions ? source.Height : source.Width;
+        var targetHeight = swapDimensions ? source.Width : source.Height;
+        var rotated = new SKBitmap(new SKImageInfo(targetWidth, targetHeight, source.ColorType, source.AlphaType));
+
+        using var canvas = new SKCanvas(rotated);
+        canvas.Translate(targetWidth / 2f, targetHeight / 2f);
+        canvas.RotateDegrees(degrees);
+        canvas.Translate(-source.Width / 2f, -source.Height / 2f);
+        canvas.DrawBitmap(source, 0, 0, SKSamplingOptions.Default);
+
+        return rotated;
+    }
+
     private static Task<ProcessCameraProvider> AwaitFutureAsync(IListenableFuture future, Activity activity)
     {
         var tcs = new TaskCompletionSource<ProcessCameraProvider>();
@@ -350,6 +383,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             _cameraProvider?.UnbindAll();
             _cameraProvider?.Dispose();
             _cameraProvider = null;
+            _camera = null;
             _analysisExecutor?.Shutdown();
             _analysisExecutor?.Dispose();
             _analysisExecutor = null;
@@ -357,6 +391,35 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             _previewView = null;
         }
         base.Dispose(disposing);
+    }
+
+    private void AdjustZoom(float scaleFactor)
+    {
+        if (_camera is null || scaleFactor <= 0)
+        {
+            return;
+        }
+
+        var targetZoom = global::System.Math.Clamp(_linearZoom + ((scaleFactor - 1f) * 0.35f), 0f, 1f);
+        if (global::System.Math.Abs(targetZoom - _linearZoom) < 0.001f)
+        {
+            return;
+        }
+
+        _linearZoom = targetZoom;
+        ApplyZoom(_linearZoom);
+    }
+
+    private void ApplyZoom(float linearZoom)
+    {
+        try
+        {
+            _camera?.CameraControl?.SetLinearZoom(linearZoom);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("QrScanner", $"Zoom failed: {ex}");
+        }
     }
 
     /// <summary>Hosts the CameraX <see cref="PreviewView"/> and native viewfinder overlay inside the Avalonia visual tree.</summary>
@@ -410,7 +473,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
             _borderPaint = new global::Android.Graphics.Paint
             {
-                Color = new global::Android.Graphics.Color(20, 184, 166), // Teal accent (#14B8A6)
+                Color = new global::Android.Graphics.Color(255, 62, 28), // ScannerZero accent (#FF3E1C)
                 StrokeWidth = 3f * density,
                 AntiAlias = true
             };
@@ -430,6 +493,38 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
             var rect = new global::Android.Graphics.RectF(left, top, right, bottom);
             canvas.DrawRoundRect(rect, _cornerRadiusDp, _cornerRadiusDp, _borderPaint);
+        }
+    }
+
+    private sealed class PinchZoomTouchListener : Java.Lang.Object, global::Android.Views.View.IOnTouchListener
+    {
+        private readonly global::Android.Views.ScaleGestureDetector _scaleDetector;
+
+        public PinchZoomTouchListener(global::Android.Content.Context context, Action<float> onScale)
+        {
+            _scaleDetector = new global::Android.Views.ScaleGestureDetector(
+                context,
+                new PinchScaleListener(onScale));
+        }
+
+        public bool OnTouch(global::Android.Views.View? view, global::Android.Views.MotionEvent? motionEvent)
+        {
+            if (motionEvent is null)
+            {
+                return false;
+            }
+
+            _scaleDetector.OnTouchEvent(motionEvent);
+            return true;
+        }
+    }
+
+    private sealed class PinchScaleListener(Action<float> onScale) : global::Android.Views.ScaleGestureDetector.SimpleOnScaleGestureListener
+    {
+        public override bool OnScale(global::Android.Views.ScaleGestureDetector detector)
+        {
+            onScale(detector.ScaleFactor);
+            return true;
         }
     }
 }

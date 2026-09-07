@@ -9,6 +9,10 @@
         <local:ViewLocator />
     </Application.DataTemplates>
 
+    <Application.Resources>
+        <SolidColorBrush x:Key="ScannerZeroAccentBrush" Color="#FF3E1C" />
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

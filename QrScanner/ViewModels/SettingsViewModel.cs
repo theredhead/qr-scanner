@@ -10,8 +10,13 @@ namespace QrScanner.ViewModels;
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly ScannerStrategySettingsService _settings = ScannerStrategySettingsService.Shared;
+    private readonly HistoryViewModel _history;
+    private readonly Action _showAbout;
 
     public ObservableCollection<ScannerStrategyItemViewModel> Strategies { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsResetConfirmationVisible { get; set; }
 
     public string EnabledStrategySummary
     {
@@ -22,8 +27,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    public SettingsViewModel()
+    public SettingsViewModel(HistoryViewModel history, Action showAbout)
     {
+        _history = history;
+        _showAbout = showAbout;
         Load();
     }
 
@@ -32,6 +39,22 @@ public sealed partial class SettingsViewModel : ViewModelBase
     {
         _settings.ResetToDefaults();
         Load();
+    }
+
+    [RelayCommand]
+    private void ShowAbout() => _showAbout();
+
+    [RelayCommand]
+    private void RequestReset() => IsResetConfirmationVisible = true;
+
+    [RelayCommand]
+    private void CancelReset() => IsResetConfirmationVisible = false;
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task ConfirmResetAsync()
+    {
+        IsResetConfirmationVisible = false;
+        await _history.ResetAllAsync();
     }
 
     private void Load()

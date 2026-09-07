@@ -24,7 +24,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsScanActive => CurrentPage is ScanViewModel;
     public bool IsHistoryActive => CurrentPage is HistoryViewModel;
     public bool IsSettingsActive => CurrentPage is SettingsViewModel;
-    public bool IsAboutActive => CurrentPage is AboutViewModel;
     public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel or SettingsViewModel or AboutViewModel;
 
     public MainViewModel()
@@ -32,8 +31,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _db = new DatabaseService();
         Scan = new ScanViewModel(_db, OnLiveScanCompleted);
         History = new HistoryViewModel(_db, OnHistoryRecordSelected);
-        Settings = new SettingsViewModel();
-        About = new AboutViewModel(History, NavigateToScan);
+        Settings = new SettingsViewModel(History, NavigateToAbout);
+        About = new AboutViewModel(NavigateToSettings);
 
         if (ExternalImageHandler.IsIngesting)
         {
@@ -52,7 +51,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsScanActive));
         OnPropertyChanged(nameof(IsHistoryActive));
         OnPropertyChanged(nameof(IsSettingsActive));
-        OnPropertyChanged(nameof(IsAboutActive));
         OnPropertyChanged(nameof(IsNavBarVisible));
 
         if (value is ScanViewModel)
@@ -187,7 +185,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool TryNavigateBack()
     {
-        if (CurrentPage is ScanResultViewModel or SettingsViewModel or AboutViewModel or ProcessingViewModel)
+        if (CurrentPage is AboutViewModel)
+        {
+            NavigateToSettings();
+            return true;
+        }
+
+        if (CurrentPage is ScanResultViewModel or SettingsViewModel or ProcessingViewModel)
         {
             NavigateToScan();
             return true;
