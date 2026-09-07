@@ -23,7 +23,7 @@
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="8,4">
-            <Grid ColumnDefinitions="*,*,*">
+            <Grid ColumnDefinitions="*,*,*,*">
                 <!-- Scan Tab Button -->
                 <Button Grid.Column="0"
                         Command="{Binding NavigateToScanCommand}"
@@ -54,15 +54,30 @@
                     </StackPanel>
                 </Button>
 
-                <!-- About Tab Button -->
+                <!-- Settings Tab Button -->
                 <Button Grid.Column="2"
+                        Command="{Binding NavigateToSettingsCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
+                        ToolTip.Tip="Barcode Settings">
+                    <StackPanel Spacing="3" HorizontalAlignment="Center">
+                        <lucide:LucideIcon Kind="Settings" Size="22" />
+                        <TextBlock Text="Settings" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <!-- About Tab Button -->
+                <Button Grid.Column="3"
                         Command="{Binding NavigateToAboutCommand}"
                         Background="Transparent"
                         BorderThickness="0"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         Padding="8,6"
-                        ToolTip.Tip="About QR Scanner">
+                        ToolTip.Tip="About ScannerZero">
                     <StackPanel Spacing="3" HorizontalAlignment="Center">
                         <lucide:LucideIcon Kind="Info" Size="22" />
                         <TextBlock Text="About" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />

@@ -26,7 +26,7 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
     public partial Control? PreviewControl { get; set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Point the camera at a QR code";
+    public partial string StatusMessage { get; set; } = "Point the camera at an enabled barcode";
 
     public ScanViewModel(IDatabaseService db, Action<ScanRecord, byte[]> onScanCompleted)
     {
@@ -64,7 +64,7 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
             if (!_shouldRunCamera)
                 return;
 
-            StatusMessage = "Point the camera at a QR code";
+            StatusMessage = "Point the camera at an enabled barcode";
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (_shouldRunCamera)
@@ -210,6 +210,9 @@ public sealed partial class ScanViewModel : ViewModelBase, IDisposable
             ScannedAtUtc = DateTime.UtcNow,
             RawText = e.RawText,
             Kind = parsed.Kind,
+            StrategyId = e.StrategyId ?? "unknown",
+            StrategyName = e.StrategyName ?? "Unknown strategy",
+            CodeType = e.CodeType ?? "Unknown",
             ImageFileName = fileName
         };
         await _db.InsertAsync(record).ConfigureAwait(false);

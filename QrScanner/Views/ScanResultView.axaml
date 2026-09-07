@@ -44,16 +44,28 @@
 
                 <!-- SUCCESS VIEW -->
                 <StackPanel IsVisible="{Binding IsSuccess}" Spacing="14">
-                    <!-- Kind Badge -->
-                    <Border Background="{DynamicResource SystemAccentColor}"
-                            CornerRadius="12"
-                            Padding="10,4"
-                            HorizontalAlignment="Left">
-                        <TextBlock Text="{Binding KindBadge}"
-                                   Foreground="White"
-                                   FontWeight="SemiBold"
-                                   FontSize="12" />
-                    </Border>
+                    <!-- Result Badges -->
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8">
+                        <Border Background="{DynamicResource SystemAccentColor}"
+                                CornerRadius="12"
+                                Padding="10,4"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding KindBadge}"
+                                       Foreground="White"
+                                       FontWeight="SemiBold"
+                                       FontSize="12" />
+                        </Border>
+                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="10,4"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding ScannerBadge}"
+                                       FontWeight="SemiBold"
+                                       FontSize="12" />
+                        </Border>
+                    </WrapPanel>
 
                     <!-- Decoded Text Content -->
                     <TextBox Text="{Binding DisplayText}"
@@ -135,7 +147,7 @@
                                FontWeight="Bold"
                                TextAlignment="Center"
                                TextWrapping="Wrap" />
-                    <TextBlock Text="No readable QR code was detected in this image. Make sure the code is clear, well-lit, and in frame."
+                    <TextBlock Text="No enabled barcode strategy could read this image. Make sure the code is clear, well-lit, and in frame."
                                Opacity="0.7"
                                TextAlignment="Center"
                                TextWrapping="Wrap"

@@ -110,7 +110,7 @@ public sealed class IosCameraScanService : NSObject, ICameraScanService, IAVCapt
     }
 
     [Export("captureOutput:didOutputSampleBuffer:fromConnection:")]
-    public void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CoreMedia.CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
+    public async void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CoreMedia.CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
     {
         try
         {
@@ -133,11 +133,18 @@ public sealed class IosCameraScanService : NSObject, ICameraScanService, IAVCapt
                 return;
             }
 
-            var text = QrDecoder.TryDecode(bitmap);
-            if (text is not null)
+            var result = await QrDecoder.Scan(bitmap).ConfigureAwait(false);
+            if (result.IsSuccess && result.RawText is not null)
             {
                 using var jpeg = bitmap.Encode(SKEncodedImageFormat.Jpeg, 85);
-                QrDetected?.Invoke(this, new QrDetectedEventArgs { RawText = text, JpegImage = jpeg.ToArray() });
+                QrDetected?.Invoke(this, new QrDetectedEventArgs
+                {
+                    RawText = result.RawText,
+                    StrategyId = result.StrategyId,
+                    StrategyName = result.StrategyName,
+                    CodeType = result.CodeType,
+                    JpegImage = jpeg.ToArray()
+                });
             }
         }
         finally

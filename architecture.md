@@ -1,7 +1,7 @@
 # Architecture & Navigation Specification
 
 ## 1. Overview
-QR Scanner is a cross-platform Avalonia UI application (.NET 10) targeting Android, iOS, and Desktop (macOS/Windows/Linux).
+ScannerZero is a cross-platform Avalonia UI application (.NET 10) targeting Android, iOS, and Desktop (macOS/Windows/Linux).
 
 The UI uses a **single-state navigation model** where `MainViewModel.CurrentPage` directly determines the active screen and camera lifecycle.
 

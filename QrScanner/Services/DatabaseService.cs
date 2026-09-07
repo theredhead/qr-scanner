@@ -14,7 +14,26 @@ public sealed class DatabaseService : IDatabaseService
     public DatabaseService()
     {
         _connection = new SQLiteAsyncConnection(AppPaths.DatabasePath);
-        _initialization = _connection.CreateTableAsync<ScanRecord>();
+        _initialization = InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        await _connection.CreateTableAsync<ScanRecord>().ConfigureAwait(false);
+        await AddColumnIfMissingAsync("StrategyId", "TEXT NOT NULL DEFAULT 'unknown'").ConfigureAwait(false);
+        await AddColumnIfMissingAsync("StrategyName", "TEXT NOT NULL DEFAULT 'Unknown strategy'").ConfigureAwait(false);
+        await AddColumnIfMissingAsync("CodeType", "TEXT NOT NULL DEFAULT 'Unknown'").ConfigureAwait(false);
+    }
+
+    private async Task AddColumnIfMissingAsync(string columnName, string definition)
+    {
+        var columns = await _connection.QueryAsync<TableInfo>("PRAGMA table_info(ScanRecords)").ConfigureAwait(false);
+        if (columns.Any(c => c.Name == columnName))
+        {
+            return;
+        }
+
+        await _connection.ExecuteAsync($"ALTER TABLE ScanRecords ADD COLUMN {columnName} {definition}").ConfigureAwait(false);
     }
 
     public async Task<int> InsertAsync(ScanRecord record)
@@ -51,5 +70,11 @@ public sealed class DatabaseService : IDatabaseService
     {
         await _initialization.ConfigureAwait(false);
         await _connection.DeleteAllAsync<ScanRecord>().ConfigureAwait(false);
+    }
+
+    private sealed class TableInfo
+    {
+        [Column("name")]
+        public string Name { get; set; } = string.Empty;
     }
 }

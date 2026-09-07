@@ -18,6 +18,7 @@ public class ViewLocator : IDataTemplate
             ScanViewModel => new ScanView(),
             ScanResultViewModel => new ScanResultView(),
             HistoryViewModel => new HistoryView(),
+            SettingsViewModel => new SettingsView(),
             AboutViewModel => new AboutView(),
             ProcessingViewModel => new ProcessingView(),
             _ => param is null ? null : new TextBlock { Text = "Not Found: " + param.GetType().FullName }

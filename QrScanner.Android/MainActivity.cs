@@ -15,7 +15,7 @@ using QrScanner.Views;
 namespace QrScanner.Android;
 
 [Activity(
-    Label = "QR Scanner",
+    Label = "ScannerZero",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,

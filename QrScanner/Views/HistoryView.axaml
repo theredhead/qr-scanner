@@ -34,6 +34,7 @@
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding RawText}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
+                                    <TextBlock Text="{Binding StrategyName, StringFormat='Decoded by {0}'}" Opacity="0.65" FontSize="11" Margin="0,2,0,0" />
                                     <TextBlock Text="{Binding ScannedAtUtc}" Opacity="0.6" FontSize="11" Margin="0,2,0,0" />
                                 </StackPanel>
                             </Grid>

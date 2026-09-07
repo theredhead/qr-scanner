@@ -15,6 +15,7 @@ using Avalonia.Controls;
 using Avalonia.Platform;
 using Google.Common.Util.Concurrent;
 using Java.Lang;
+using Java.Util.Concurrent;
 using QrScanner.Services;
 using SkiaSharp;
 using Exception = System.Exception;
@@ -31,6 +32,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
     private PreviewView? _previewView;
     private global::Android.Widget.FrameLayout? _container;
     private ProcessCameraProvider? _cameraProvider;
+    private IExecutorService? _analysisExecutor;
     private DateTime _lastDecodeAttemptUtc = DateTime.MinValue;
     private bool _hasLoggedFrame;
     private volatile bool _shouldBeRunning;
@@ -147,16 +149,14 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             }
 
             var analysis = new ImageAnalysis.Builder()
+                ?.SetTargetResolution(new global::Android.Util.Size(1280, 720))
                 ?.SetBackpressureStrategy(ImageAnalysis.StrategyKeepOnlyLatest)
                 ?.Build();
 
             if (analysis is not null)
             {
-                var executor = ContextCompat.GetMainExecutor(_activity);
-                if (executor is not null)
-                {
-                    analysis.SetAnalyzer(executor, this);
-                }
+                _analysisExecutor ??= Executors.NewSingleThreadExecutor();
+                analysis.SetAnalyzer(_analysisExecutor, this);
             }
 
             if (!_shouldBeRunning)
@@ -218,7 +218,7 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
 
     public int TargetCoordinateSystem => 0;
 
-    public void Analyze(IImageProxy? image)
+    public async void Analyze(IImageProxy? image)
     {
         if (image is null)
             return;
@@ -249,11 +249,18 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
                 return;
             }
 
-            var text = QrDecoder.TryDecode(bitmap);
-            if (text is not null)
+            var result = await QrDecoder.Scan(bitmap).ConfigureAwait(false);
+            if (result.IsSuccess && result.RawText is not null)
             {
                 using var jpeg = bitmap.Encode(SKEncodedImageFormat.Jpeg, 85);
-                QrDetected?.Invoke(this, new QrDetectedEventArgs { RawText = text, JpegImage = jpeg.ToArray() });
+                QrDetected?.Invoke(this, new QrDetectedEventArgs
+                {
+                    RawText = result.RawText,
+                    StrategyId = result.StrategyId,
+                    StrategyName = result.StrategyName,
+                    CodeType = result.CodeType,
+                    JpegImage = jpeg.ToArray()
+                });
             }
         }
         catch (Exception ex)
@@ -343,6 +350,9 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
             _cameraProvider?.UnbindAll();
             _cameraProvider?.Dispose();
             _cameraProvider = null;
+            _analysisExecutor?.Shutdown();
+            _analysisExecutor?.Dispose();
+            _analysisExecutor = null;
             _previewView?.Dispose();
             _previewView = null;
         }

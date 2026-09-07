@@ -8,13 +8,19 @@ public sealed class QrDetectedEventArgs : EventArgs
 {
     public required string RawText { get; init; }
 
+    public string? StrategyId { get; init; }
+
+    public string? StrategyName { get; init; }
+
+    public string? CodeType { get; init; }
+
     /// <summary>A JPEG snapshot of the frame the code was detected in, saved into scan history.</summary>
     public required byte[] JpegImage { get; init; }
 }
 
 /// <summary>
-/// Platform-specific camera capture + QR decoding. Implementations own a native camera preview
-/// control and raise <see cref="QrDetected"/> whenever a QR code is found in a captured frame.
+/// Platform-specific camera capture + barcode decoding. Implementations own a native camera preview
+/// control and raise <see cref="QrDetected"/> whenever an enabled strategy finds a code in a captured frame.
 /// </summary>
 public interface ICameraScanService : IDisposable
 {

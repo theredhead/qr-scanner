@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             x:Class="QrScanner.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Background="{DynamicResource SystemRegionBrush}">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="20">
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+                <TextBlock Text="Settings" FontSize="28" FontWeight="Bold" />
+                <TextBlock Text="{Binding EnabledStrategySummary}" Opacity="0.65" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Command="{Binding ResetDefaultsCommand}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    ToolTip.Tip="Reset barcode strategies">
+                <lucide:LucideIcon Kind="RotateCcw" Size="18" />
+            </Button>
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Text="Barcode strategies"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Margin="0,22,0,10" />
+
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Strategies}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ScannerStrategyItemViewModel">
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="0,10">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                                <ToggleSwitch IsChecked="{Binding IsEnabled}"
+                                              IsEnabled="{Binding CanToggle}"
+                                              VerticalAlignment="Center"
+                                              ToolTip.Tip="Enable strategy" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding CodeType}" Opacity="0.6" FontSize="12" />
+                                </StackPanel>
+
+                                <Button Grid.Column="2"
+                                        Command="{Binding MoveUpCommand}"
+                                        IsEnabled="{Binding CanMoveUp}"
+                                        Width="36"
+                                        Height="36"
+                                        Padding="0"
+                                        ToolTip.Tip="Move earlier">
+                                    <lucide:LucideIcon Kind="ArrowUp" Size="18" />
+                                </Button>
+
+                                <Button Grid.Column="3"
+                                        Command="{Binding MoveDownCommand}"
+                                        IsEnabled="{Binding CanMoveDown}"
+                                        Width="36"
+                                        Height="36"
+                                        Padding="0"
+                                        ToolTip.Tip="Move later">
+                                    <lucide:LucideIcon Kind="ArrowDown" Size="18" />
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

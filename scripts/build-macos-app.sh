@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 
 RID="${1:-osx-arm64}"
 CONFIG="Release"
-APP_NAME="QR Scanner"
+APP_NAME="ScannerZero"
 BUNDLE_ID="nl.theredhead.qrscanner"
 EXECUTABLE_NAME="QrScanner.Desktop"
 
@@ -46,7 +46,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSCameraUsageDescription</key>
-	<string>QR Scanner uses the camera to scan QR codes.</string>
+	<string>ScannerZero uses the camera to scan QR codes.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

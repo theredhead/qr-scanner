@@ -15,6 +15,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public ScanViewModel Scan { get; }
     public HistoryViewModel History { get; }
+    public SettingsViewModel Settings { get; }
     public AboutViewModel About { get; }
 
     [ObservableProperty]
@@ -22,14 +23,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool IsScanActive => CurrentPage is ScanViewModel;
     public bool IsHistoryActive => CurrentPage is HistoryViewModel;
+    public bool IsSettingsActive => CurrentPage is SettingsViewModel;
     public bool IsAboutActive => CurrentPage is AboutViewModel;
-    public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel or AboutViewModel;
+    public bool IsNavBarVisible => CurrentPage is ScanViewModel or HistoryViewModel or SettingsViewModel or AboutViewModel;
 
     public MainViewModel()
     {
         _db = new DatabaseService();
         Scan = new ScanViewModel(_db, OnLiveScanCompleted);
         History = new HistoryViewModel(_db, OnHistoryRecordSelected);
+        Settings = new SettingsViewModel();
         About = new AboutViewModel(History, NavigateToScan);
 
         if (ExternalImageHandler.IsIngesting)
@@ -48,6 +51,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsScanActive));
         OnPropertyChanged(nameof(IsHistoryActive));
+        OnPropertyChanged(nameof(IsSettingsActive));
         OnPropertyChanged(nameof(IsAboutActive));
         OnPropertyChanged(nameof(IsNavBarVisible));
 
@@ -83,6 +87,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void NavigateToHistory() => CurrentPage = History;
 
     [RelayCommand]
+    public void NavigateToSettings() => CurrentPage = Settings;
+
+    [RelayCommand]
     public void NavigateToAbout() => CurrentPage = About;
 
     public void ActivateCurrentPage()
@@ -104,6 +111,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             record.RawText,
             jpegBytes,
             record.ImagePath,
+            record.StrategyName,
+            record.CodeType,
             onDismiss: NavigateToScan);
     }
 
@@ -119,6 +128,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             record.RawText,
             jpegBytes ?? [],
             record.ImagePath,
+            record.StrategyName,
+            record.CodeType,
             onDismiss: NavigateToHistory);
     }
 
@@ -130,20 +141,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             CurrentPage = new ProcessingViewModel("Scanning shared image...");
         });
 
-        var (rawText, jpegBytes) = await Task.Run(() => QrDecoder.DecodeImageBytes(imageBytes)).ConfigureAwait(false);
+        var (scanResult, jpegBytes) = await QrDecoder.ScanImageBytes(imageBytes).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(rawText) && jpegBytes is not null)
+        if (scanResult.IsSuccess && !string.IsNullOrEmpty(scanResult.RawText) && jpegBytes is not null)
         {
             var fileName = $"{Guid.NewGuid():N}.jpg";
             var path = Path.Combine(AppPaths.ImagesDirectory, fileName);
             await File.WriteAllBytesAsync(path, jpegBytes).ConfigureAwait(false);
 
-            var parsed = QrContentParser.Parse(rawText);
+            var parsed = QrContentParser.Parse(scanResult.RawText);
             var record = new ScanRecord
             {
                 ScannedAtUtc = DateTime.UtcNow,
-                RawText = rawText,
+                RawText = scanResult.RawText,
                 Kind = parsed.Kind,
+                StrategyId = scanResult.StrategyId ?? "unknown",
+                StrategyName = scanResult.StrategyName ?? "Unknown strategy",
+                CodeType = scanResult.CodeType ?? "Unknown",
                 ImageFileName = fileName
             };
             await _db.InsertAsync(record).ConfigureAwait(false);
@@ -151,9 +165,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             Dispatcher.UIThread.Post(() =>
             {
                 CurrentPage = ScanResultViewModel.CreateSuccess(
-                    rawText,
+                    scanResult.RawText,
                     jpegBytes,
                     path,
+                    record.StrategyName,
+                    record.CodeType,
                     onDismiss: NavigateToScan);
             });
         }
@@ -163,7 +179,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             {
                 CurrentPage = ScanResultViewModel.CreateFailure(
                     imageBytes,
-                    "No QR code found in shared image",
+                    "No enabled barcode found in shared image",
                     onDismiss: NavigateToScan);
             });
         }
@@ -171,7 +187,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool TryNavigateBack()
     {
-        if (CurrentPage is ScanResultViewModel or AboutViewModel or ProcessingViewModel)
+        if (CurrentPage is ScanResultViewModel or SettingsViewModel or AboutViewModel or ProcessingViewModel)
         {
             NavigateToScan();
             return true;

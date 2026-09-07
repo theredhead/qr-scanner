@@ -23,6 +23,9 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
     public string? RawText { get; }
     public string DisplayText { get; }
     public ContentKind Kind { get; }
+    public string StrategyName { get; }
+    public string CodeType { get; }
+    public string ScannerBadge => $"{CodeType} via {StrategyName}";
     public string? ActionLabel => _parsed?.ActionLabel;
     public string? ActionUri => _parsed?.ActionUri;
     public bool CanOpenAction => _parsed?.ActionUri is not null;
@@ -54,6 +57,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
         string? rawText,
         ParsedQrContent? parsed,
         string? imagePath,
+        string? strategyName,
+        string? codeType,
         Action? onDismiss)
     {
         IsSuccess = isSuccess;
@@ -64,6 +69,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
         DisplayText = parsed?.DisplayText ?? rawText ?? string.Empty;
         Kind = parsed?.Kind ?? ContentKind.Text;
         ImagePath = imagePath;
+        StrategyName = string.IsNullOrWhiteSpace(strategyName) ? "Unknown strategy" : strategyName;
+        CodeType = string.IsNullOrWhiteSpace(codeType) ? "Unknown" : codeType;
         _onDismiss = onDismiss;
     }
 
@@ -71,6 +78,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
         string rawText,
         byte[] jpegBytes,
         string imagePath,
+        string? strategyName,
+        string? codeType,
         Action? onDismiss)
     {
         var parsed = QrContentParser.Parse(rawText);
@@ -99,6 +108,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             rawText: rawText,
             parsed: parsed,
             imagePath: imagePath,
+            strategyName: strategyName,
+            codeType: codeType,
             onDismiss: onDismiss);
     }
 
@@ -140,6 +151,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             rawText: null,
             parsed: null,
             imagePath: null,
+            strategyName: null,
+            codeType: null,
             onDismiss: onDismiss);
     }
 

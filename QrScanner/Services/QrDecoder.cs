@@ -1,56 +1,47 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using SkiaSharp;
-using ZXing;
-using ZXing.Common;
-using ZXing.SkiaSharp;
 
 namespace QrScanner.Services;
 
-/// <summary>Shared QR decoding logic used by every platform's camera capture implementation.</summary>
+/// <summary>Shared image decoding logic used by camera capture and external image ingestion.</summary>
 public static class QrDecoder
 {
-    private static BarcodeReader CreateReader() => new()
-    {
-        AutoRotate = true,
-        Options = new DecodingOptions
-        {
-            TryHarder = true,
-            TryInverted = true,
-            PossibleFormats = [BarcodeFormat.QR_CODE]
-        }
-    };
-
-    /// <summary>Returns the decoded text, or null if no QR code was found in the bitmap.</summary>
-    public static string? TryDecode(SKBitmap bitmap)
+    /// <summary>Scans a bitmap using the enabled scanner strategies in user-defined order.</summary>
+    public static async Task<ScannerResult> Scan(SKBitmap bitmap, CancellationToken cancellationToken = default)
     {
         try
         {
-            var reader = CreateReader();
-            return reader.Decode(bitmap)?.Text;
+            return await ScannerStrategyRunner.Scan(bitmap, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
-            return null;
+            return ScannerResult.Failure("Scanning failed.");
         }
     }
 
     /// <summary>
-    /// Decodes a QR code from raw image bytes (JPEG, PNG, HEIC, WebP, etc.) quickly using progressive multi-stage decoding.
-    /// Returns the decoded raw QR text and an optimized JPEG representation for storage/display.
+    /// Decodes a barcode from raw image bytes (JPEG, PNG, HEIC, WebP, etc.) quickly using progressive multi-stage decoding.
+    /// Returns the decoded raw text and an optimized JPEG representation for storage/display.
     /// </summary>
-    public static (string? RawText, byte[]? JpegBytes) DecodeImageBytes(byte[] imageBytes)
+    public static async Task<(ScannerResult Result, byte[]? JpegBytes)> ScanImageBytes(byte[] imageBytes, CancellationToken cancellationToken = default)
     {
         if (imageBytes is null || imageBytes.Length == 0)
-            return (null, null);
+            return (ScannerResult.Failure("The selected image is empty."), null);
 
         try
         {
             using var original = DecodeWithAutoOrientation(imageBytes);
             if (original is null)
-                return (null, null);
+                return (ScannerResult.Failure("The selected image could not be read."), null);
 
             var maxDim = Math.Max(original.Width, original.Height);
-            string? text = null;
+            ScannerResult result = ScannerResult.Failure("No enabled barcode strategy could read this image.");
 
             // Target candidate bitmap to test
             SKBitmap candidateBitmap;
@@ -71,13 +62,13 @@ public static class QrDecoder
 
             try
             {
-                // Pass 1: Standard downscaled decode (~15ms)
-                text = TryDecode(candidateBitmap);
+                // Pass 1: Standard downscaled decode.
+                result = await Scan(candidateBitmap, cancellationToken).ConfigureAwait(false);
 
-                // Pass 2: Anti-moire / slight blur filter (~20ms)
+                // Pass 2: Anti-moire / slight blur filter.
                 // When photos are taken of monitors, TVs, or other phone screens, subpixel grids create moire patterns
-                // that distort standard binarizers. A gentle 1.0px blur smooths screen frequency noise while preserving QR modules.
-                if (string.IsNullOrEmpty(text))
+                // that distort standard binarizers. A gentle 1.0px blur smooths screen frequency noise while preserving code modules.
+                if (!result.IsSuccess)
                 {
                     using var smoothed = new SKBitmap(candidateBitmap.Width, candidateBitmap.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
                     using (var canvas = new SKCanvas(smoothed))
@@ -85,13 +76,13 @@ public static class QrDecoder
                     {
                         canvas.DrawBitmap(candidateBitmap, 0, 0, SKSamplingOptions.Default, paint);
                     }
-                    text = TryDecode(smoothed);
+                    result = await Scan(smoothed, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Pass 3: Fallback to full native resolution
-                if (string.IsNullOrEmpty(text) && !ReferenceEquals(candidateBitmap, original))
+                if (!result.IsSuccess && !ReferenceEquals(candidateBitmap, original))
                 {
-                    text = TryDecode(original);
+                    result = await Scan(original, cancellationToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -102,9 +93,9 @@ public static class QrDecoder
                 }
             }
 
-            if (string.IsNullOrEmpty(text))
+            if (!result.IsSuccess)
             {
-                return (null, null);
+                return (result, null);
             }
 
             // Produce an optimized JPEG for disk storage and UI preview (capped at 1600px)
@@ -129,10 +120,10 @@ public static class QrDecoder
                     if (data is not null)
                     {
                         var jpegBytes = data.ToArray();
-                        return (text, jpegBytes);
+                        return (result, jpegBytes);
                     }
                 }
-                return (text, imageBytes);
+                return (result, imageBytes);
             }
             finally
             {
@@ -142,9 +133,13 @@ public static class QrDecoder
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
-            return (null, null);
+            return (ScannerResult.Failure("Scanning failed."), null);
         }
     }
 

@@ -112,15 +112,22 @@ public sealed class DesktopCameraScanService : ICameraScanService
         _lastDecodeAttemptUtc = now;
 
         using var decodeFrame = Downscale(bitmap, maxDimension: 640);
-        var text = QrDecoder.TryDecode(decodeFrame);
-        if (text is null)
+        var result = await QrDecoder.Scan(decodeFrame).ConfigureAwait(false);
+        if (!result.IsSuccess || result.RawText is null)
         {
             return;
         }
 
         using var upright = ApplyGrayscale(bitmap, flipVertical: true);
         using var jpeg = upright.Encode(SKEncodedImageFormat.Jpeg, 85);
-        QrDetected?.Invoke(this, new QrDetectedEventArgs { RawText = text, JpegImage = jpeg.ToArray() });
+        QrDetected?.Invoke(this, new QrDetectedEventArgs
+        {
+            RawText = result.RawText,
+            StrategyId = result.StrategyId,
+            StrategyName = result.StrategyName,
+            CodeType = result.CodeType,
+            JpegImage = jpeg.ToArray()
+        });
     }
 
     /// <summary>Returns a smaller copy for fast QR decoding; returns the original if it's already small enough.</summary>
@@ -158,5 +165,3 @@ public sealed class DesktopCameraScanService : ICameraScanService
         _device?.Dispose();
     }
 }
-
-
