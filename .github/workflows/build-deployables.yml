@@ -1,0 +1,93 @@
+name: Build deployables
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android unsigned APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Restore
+        run: dotnet restore ScannerZero.Android/ScannerZero.Android.csproj
+
+      - name: Build unsigned APK
+        run: >
+          dotnet build ScannerZero.Android/ScannerZero.Android.csproj
+          --configuration Release
+          --no-restore
+          -p:AndroidPackageFormat=apk
+          -p:AndroidKeyStore=false
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScannerZero-android-unsigned-apk
+          path: |
+            ScannerZero.Android/bin/Release/net10.0-android/*.apk
+            !ScannerZero.Android/bin/Release/net10.0-android/*-Signed.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop:
+    name: Desktop ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-arm64
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish desktop app
+        run: >
+          dotnet publish ScannerZero.Desktop/ScannerZero.Desktop.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          -p:UseAppHost=true
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScannerZero-desktop-${{ matrix.rid }}
+          path: ScannerZero.Desktop/bin/Release/net10.0/${{ matrix.rid }}/publish/**
+          if-no-files-found: error
+          retention-days: 14
