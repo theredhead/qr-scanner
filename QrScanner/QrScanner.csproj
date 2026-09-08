@@ -26,6 +26,5 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Lucide.Avalonia" />
     <PackageReference Include="sqlite-net-pcl" />
-    <PackageReference Include="SQLitePCLRaw.bundle_green" />
   </ItemGroup>
 </Project>

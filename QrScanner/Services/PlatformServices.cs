@@ -14,4 +14,6 @@ public static class PlatformServices
     public static Func<IWifiConnector>? WifiConnectorFactory { get; set; }
 
     public static Func<IShareService>? ShareFactory { get; set; }
+
+    public static Func<IContactImporter>? ContactImporterFactory { get; set; }
 }

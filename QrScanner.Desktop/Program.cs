@@ -14,6 +14,7 @@ sealed class Program
     public static void Main(string[] args)
     {
         PlatformServices.CameraFactory = () => new DesktopCameraScanService();
+        PlatformServices.ContactImporterFactory = () => new DesktopContactImporter();
 
         if (args.Length > 0 && System.IO.File.Exists(args[0]))
         {

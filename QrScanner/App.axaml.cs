@@ -10,7 +10,7 @@ public partial class App : Application
 {
     public override void Initialize()
     {
-        SQLitePCL.Batteries_V2.Init();
+        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_e_sqlite3());
         AvaloniaXamlLoader.Load(this);
 #if DEBUG
         this.AttachDeveloperTools();

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:views="using:QrScanner.Views"
              xmlns:lucide="using:Lucide.Avalonia"
              x:Class="QrScanner.Views.AboutView"
              x:DataType="vm:AboutViewModel"
@@ -16,7 +17,7 @@
             </Button>
 
             <TextBlock Grid.Column="1"
-                       Text="ScannerZero"
+                       Text="About"
                        FontSize="28"
                        FontWeight="Bold"
                        VerticalAlignment="Center"
@@ -43,12 +44,7 @@
         </StackPanel>
 
         <ScrollViewer Grid.Row="2">
-            <TextBox Text="{Binding Readme}"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     BorderThickness="0"
-                     Padding="0" />
+            <views:MarkdownView Markdown="{Binding Readme}" />
         </ScrollViewer>
     </Grid>
 </UserControl>

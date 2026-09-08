@@ -105,6 +105,21 @@ public sealed partial class SettingsViewModel : ViewModelBase
         Save();
     }
 
+    public void MoveStrategy(ScannerStrategyItemViewModel item, int targetIndex)
+    {
+        var currentIndex = Strategies.IndexOf(item);
+        if (currentIndex < 0 ||
+            targetIndex < 0 ||
+            targetIndex >= Strategies.Count ||
+            currentIndex == targetIndex)
+        {
+            return;
+        }
+
+        Strategies.Move(currentIndex, targetIndex);
+        Save();
+    }
+
     private void Save()
     {
         _settings.Save(Strategies.Select((item, index) => new ScannerStrategySetting

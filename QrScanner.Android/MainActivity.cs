@@ -44,6 +44,7 @@ public class MainActivity : AvaloniaMainActivity
         PlatformServices.CameraFactory = () => new AndroidCameraScanService(this);
         PlatformServices.WifiConnectorFactory = () => new AndroidWifiConnector(this);
         PlatformServices.ShareFactory = () => new AndroidShareService(this);
+        PlatformServices.ContactImporterFactory = () => new AndroidContactImporter(this);
 
         // Process incoming share intent BEFORE base.OnCreate so image is queued
         // into ExternalImageHandler before MainViewModel initializes its camera state.

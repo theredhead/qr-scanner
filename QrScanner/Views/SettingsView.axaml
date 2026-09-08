@@ -25,8 +25,11 @@
                         Command="{Binding ResetDefaultsCommand}"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
-                        ToolTip.Tip="Reset barcode strategies">
-                    <lucide:LucideIcon Kind="RotateCcw" Size="18" />
+                        ToolTip.Tip="Reset strategy order and enabled defaults">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <lucide:LucideIcon Kind="RotateCcw" Size="18" />
+                        <TextBlock Text="Reset defaults" VerticalAlignment="Center" />
+                    </StackPanel>
                 </Button>
             </Grid>
 
@@ -36,43 +39,50 @@
                        FontWeight="SemiBold"
                        Margin="0,22,0,10" />
 
-            <ScrollViewer Grid.Row="2">
-                <ItemsControl ItemsSource="{Binding Strategies}">
+            <ScrollViewer x:Name="StrategyScrollViewer"
+                          Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="StrategyItems"
+                              ItemsSource="{Binding Strategies}"
+                              Margin="0,0,18,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ScannerStrategyItemViewModel">
                             <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                                     BorderThickness="0,0,0,1"
-                                    Padding="0,10">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-                                    <ToggleSwitch IsChecked="{Binding IsEnabled}"
+                                    Padding="0,10"
+                                    Classes="strategy-row">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" MinHeight="64">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Border Width="72"
+                                                Height="56"
+                                                Background="Transparent"
+                                                VerticalAlignment="Center"
+                                                PointerPressed="StrategyDragHandle_PointerPressed"
+                                                ToolTip.Tip="Drag to reorder">
+                                            <lucide:LucideIcon Kind="GripVertical"
+                                                              Size="22"
+                                                              Opacity="0.65"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding CodeType}" Opacity="0.6" FontSize="12" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <ToggleSwitch Grid.Column="1"
+                                                  IsChecked="{Binding IsEnabled}"
                                                   IsEnabled="{Binding CanToggle}"
+                                                  OnContent=""
+                                                  OffContent=""
+                                                  MinWidth="52"
+                                                  HorizontalAlignment="Right"
                                                   VerticalAlignment="Center"
                                                   ToolTip.Tip="Enable strategy" />
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding CodeType}" Opacity="0.6" FontSize="12" />
-                                    </StackPanel>
-
-                                    <Button Grid.Column="2"
-                                            Command="{Binding MoveUpCommand}"
-                                            IsEnabled="{Binding CanMoveUp}"
-                                            Width="36"
-                                            Height="36"
-                                            Padding="0"
-                                            ToolTip.Tip="Move earlier">
-                                        <lucide:LucideIcon Kind="ArrowUp" Size="18" />
-                                    </Button>
-
-                                    <Button Grid.Column="3"
-                                            Command="{Binding MoveDownCommand}"
-                                            IsEnabled="{Binding CanMoveDown}"
-                                            Width="36"
-                                            Height="36"
-                                            Padding="0"
-                                            ToolTip.Tip="Move later">
-                                        <lucide:LucideIcon Kind="ArrowDown" Size="18" />
-                                    </Button>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -91,6 +101,28 @@
                 </StackPanel>
             </Button>
         </Grid>
+
+        <Canvas IsHitTestVisible="False">
+            <Border x:Name="DragGhost"
+                    IsVisible="False"
+                    Background="{DynamicResource SystemRegionBrush}"
+                    BorderBrush="{StaticResource ScannerZeroAccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    BoxShadow="0 8 22 #55000000"
+                    Padding="12,8">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <lucide:LucideIcon Kind="GripVertical"
+                                      Size="22"
+                                      Opacity="0.7"
+                                      VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="DragGhostTitle" FontWeight="SemiBold" />
+                        <TextBlock x:Name="DragGhostSubtitle" Opacity="0.65" FontSize="12" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Canvas>
 
         <Grid IsVisible="{Binding IsResetConfirmationVisible}"
               Background="#80000000">

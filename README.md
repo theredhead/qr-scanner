@@ -14,12 +14,12 @@ Rather than assuming every QR code is a web link, it recognizes common types of 
 
 Depending on the contents of the QR code and the platform you're using, you can:
 
-* Open web links
-* Connect to Wi-Fi networks
-* Copy Wi-Fi network names and passwords
-* Copy the complete decoded data
-* Use other context-specific actions appropriate to the decoded content
-* Select and copy any part of the decoded data using the normal OS controls
+- Open web links
+- Connect to Wi-Fi networks
+- Copy Wi-Fi network names and passwords
+- Copy the complete decoded data
+- Use other context-specific actions appropriate to the decoded content
+- Select and copy any part of the decoded data using the normal OS controls
 
 ScannerZero also keeps a local history of the codes you've scanned, including the image they were scanned from, so you can go back to them later.
 
@@ -29,14 +29,14 @@ ScannerZero also keeps a local history of the codes you've scanned, including th
 
 ScannerZero:
 
-* has no accounts
-* has no analytics
-* has no tracking
-* has no advertising
-* has no backend service
-* does not upload scanned QR codes
-* does not upload captured images
-* does not send your scan history anywhere
+- has no accounts
+- has no analytics
+- has no tracking
+- has no advertising
+- has no backend service
+- does not upload scanned QR codes
+- does not upload captured images
+- does not send your scan history anywhere
 
 Your scan history and captured images remain on your device.
 
@@ -46,9 +46,9 @@ The application is open source, so you don't have to take my word for it.
 
 ScannerZero is built with Avalonia and currently targets:
 
-* Android (fairly well tested)
-* iOS (not tested)
-* Desktop (somewhat tested)
+- Android (fairly well tested)
+- iOS (not tested)
+- Desktop (somewhat tested)
 
 The same application and scanning logic is shared between platforms, with platform-specific implementations where the operating system requires them.
 
@@ -101,7 +101,7 @@ Platform-specific development requires the corresponding .NET workloads and SDKs
 
 This project is young and was originally built to solve a personal annoyance.
 
-The functional application works, but the UI and distribution packaging are still being polished before publishing it through the respective app stores.
+The functional application works, but the UI and distribution packaging are still being polished before publishing it through the respective app stores becomes an option.
 
 Contributions, bug reports, and sensible suggestions are welcome.
 

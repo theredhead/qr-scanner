@@ -74,69 +74,7 @@
                              TextWrapping="Wrap"
                              MinHeight="100" />
 
-                    <!-- Optional Status feedback (e.g. Copied) -->
-                    <TextBlock Text="{Binding StatusMessage}"
-                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                               Opacity="0.8"
-                               FontWeight="Medium" />
-
-                    <!-- Wi-Fi Network details if applicable -->
-                    <TextBlock Text="{Binding WifiSsid, StringFormat='Wi-Fi Network: {0}'}"
-                               IsVisible="{Binding IsWifi}"
-                               FontWeight="SemiBold" />
-
-                    <!-- Action Buttons -->
-                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" Margin="0,8,0,0">
-                        <Button Command="{Binding OpenLinkCommand}"
-                                CommandParameter="{Binding $parent[TopLevel]}"
-                                IsVisible="{Binding CanOpenAction}"
-                                Background="{DynamicResource SystemAccentColor}"
-                                Foreground="White"
-                                ToolTip.Tip="Open link">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <lucide:LucideIcon Kind="ExternalLink" Size="18" />
-                                <TextBlock Text="{Binding ActionLabel}" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding ConnectWifiCommand}"
-                                IsVisible="{Binding IsWifi}"
-                                IsEnabled="{Binding IsWifiConnectSupported}"
-                                Background="{DynamicResource SystemAccentColor}"
-                                Foreground="White"
-                                ToolTip.Tip="Connect to Wi-Fi">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <lucide:LucideIcon Kind="Wifi" Size="18" />
-                                <TextBlock Text="Connect" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding CopyTextCommand}"
-                                CommandParameter="{Binding $parent[TopLevel]}"
-                                ToolTip.Tip="Copy to clipboard">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <lucide:LucideIcon Kind="Copy" Size="18" />
-                                <TextBlock Text="Copy" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding ShareCommand}"
-                                IsVisible="{Binding IsShareSupported}"
-                                ToolTip.Tip="Share image">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <lucide:LucideIcon Kind="Share2" Size="18" />
-                                <TextBlock Text="Share image" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding DismissCommand}"
-                                ToolTip.Tip="Scan another code">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <lucide:LucideIcon Kind="Scan" Size="18" />
-                                <TextBlock Text="Scan again" />
-                            </StackPanel>
-                        </Button>
-                    </WrapPanel>
+                    <ContentControl Content="{Binding PayloadActions}" />
                 </StackPanel>
 
                 <!-- FAILURE VIEW -->

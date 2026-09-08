@@ -1,10 +1,6 @@
 using System;
 using System.IO;
-using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Input.Platform;
 using Avalonia.Media.Imaging;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QrScanner.Models;
 using QrScanner.Services;
@@ -14,7 +10,6 @@ namespace QrScanner.ViewModels;
 
 public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
 {
-    private readonly ParsedQrContent? _parsed;
     private readonly Action? _onDismiss;
 
     public bool IsSuccess { get; }
@@ -26,17 +21,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
     public string StrategyName { get; }
     public string CodeType { get; }
     public string ScannerBadge => $"{CodeType} via {StrategyName}";
-    public string? ActionLabel => _parsed?.ActionLabel;
-    public string? ActionUri => _parsed?.ActionUri;
-    public bool CanOpenAction => _parsed?.ActionUri is not null;
-    public bool IsWifi => _parsed?.Wifi is not null;
-    public string? WifiSsid => _parsed?.Wifi?.Ssid;
     public string? ImagePath { get; }
-    public bool IsWifiConnectSupported { get; } = PlatformServices.WifiConnectorFactory is not null;
-    public bool IsShareSupported => PlatformServices.ShareFactory is not null && !string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath);
-
-    [ObservableProperty]
-    public partial string? StatusMessage { get; set; }
+    public ScanPayloadViewModel? PayloadActions { get; }
 
     public string Title => IsSuccess ? "Scan result" : "Scan failed";
 
@@ -59,18 +45,19 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
         string? imagePath,
         string? strategyName,
         string? codeType,
+        ScanPayloadViewModel? payloadActions,
         Action? onDismiss)
     {
         IsSuccess = isSuccess;
         ErrorMessage = errorMessage;
         Image = image;
         RawText = rawText;
-        _parsed = parsed;
         DisplayText = parsed?.DisplayText ?? rawText ?? string.Empty;
         Kind = parsed?.Kind ?? ContentKind.Text;
         ImagePath = imagePath;
         StrategyName = string.IsNullOrWhiteSpace(strategyName) ? "Unknown strategy" : strategyName;
         CodeType = string.IsNullOrWhiteSpace(codeType) ? "Unknown" : codeType;
+        PayloadActions = payloadActions;
         _onDismiss = onDismiss;
     }
 
@@ -101,6 +88,8 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             System.Diagnostics.Debug.WriteLine($"Failed to load bitmap in CreateSuccess: {ex}");
         }
 
+        var payloadActions = ScanPayloadViewModelFactory.Create(rawText, parsed, imagePath, onDismiss);
+
         return new ScanResultViewModel(
             isSuccess: true,
             errorMessage: null,
@@ -110,6 +99,7 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             imagePath: imagePath,
             strategyName: strategyName,
             codeType: codeType,
+            payloadActions: payloadActions,
             onDismiss: onDismiss);
     }
 
@@ -153,59 +143,12 @@ public sealed partial class ScanResultViewModel : ViewModelBase, IDisposable
             imagePath: null,
             strategyName: null,
             codeType: null,
+            payloadActions: null,
             onDismiss: onDismiss);
     }
 
     [RelayCommand]
     private void Dismiss() => _onDismiss?.Invoke();
-
-    [RelayCommand]
-    private async Task CopyTextAsync(TopLevel? topLevel)
-    {
-        if (!string.IsNullOrEmpty(RawText) && topLevel?.Clipboard is { } clipboard)
-        {
-            await clipboard.SetTextAsync(RawText).ConfigureAwait(true);
-            StatusMessage = "Copied to clipboard!";
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenLinkAsync(TopLevel? topLevel)
-    {
-        if (_parsed?.ActionUri is not null && topLevel?.Launcher is not null)
-        {
-            await topLevel.Launcher.LaunchUriAsync(new Uri(_parsed.ActionUri)).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ConnectWifiAsync()
-    {
-        if (_parsed?.Wifi is not { } wifi)
-            return;
-
-        var connector = PlatformServices.WifiConnectorFactory?.Invoke();
-        if (connector is null)
-        {
-            StatusMessage = "Wi-Fi auto-connect isn't supported on this platform.";
-            return;
-        }
-
-        StatusMessage = await connector.ConnectAsync(wifi).ConfigureAwait(true)
-            ? "Requested Wi-Fi connection."
-            : "Couldn't start the Wi-Fi connection.";
-    }
-
-    [RelayCommand]
-    private async Task ShareAsync()
-    {
-        if (!string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath))
-        {
-            var share = PlatformServices.ShareFactory?.Invoke();
-            if (share is not null)
-                await share.ShareImageAsync(ImagePath).ConfigureAwait(true);
-        }
-    }
 
     public void Dispose()
     {

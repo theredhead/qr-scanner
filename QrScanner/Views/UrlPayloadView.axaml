@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:QrScanner.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             x:Class="QrScanner.Views.UrlPayloadView"
+             x:DataType="vm:UrlPayloadViewModel">
+    <StackPanel Spacing="10">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8">
+            <Button Command="{Binding OpenActionCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}"
+                    Background="{DynamicResource SystemAccentColor}"
+                    Foreground="White"
+                    ToolTip.Tip="Open link">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="ExternalLink" Size="18" />
+                    <TextBlock Text="Open link" />
+                </StackPanel>
+            </Button>
+
+            <Button Command="{Binding CopyTextCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}"
+                    ToolTip.Tip="Copy link">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="Copy" Size="18" />
+                    <TextBlock Text="Copy link" />
+                </StackPanel>
+            </Button>
+
+            <Button Command="{Binding ShareCommand}"
+                    IsVisible="{Binding IsShareSupported}"
+                    ToolTip.Tip="Share scan image">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="Share2" Size="18" />
+                    <TextBlock Text="Share image" />
+                </StackPanel>
+            </Button>
+
+            <Button Command="{Binding DismissCommand}"
+                    ToolTip.Tip="Scan another code">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <lucide:LucideIcon Kind="Scan" Size="18" />
+                    <TextBlock Text="Scan again" />
+                </StackPanel>
+            </Button>
+        </WrapPanel>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Opacity="0.8"
+                   FontWeight="Medium" />
+    </StackPanel>
+</UserControl>

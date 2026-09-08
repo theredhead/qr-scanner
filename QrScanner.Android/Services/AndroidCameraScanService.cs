@@ -154,8 +154,14 @@ public sealed class AndroidCameraScanService : Java.Lang.Object, ICameraScanServ
                 }
             }
 
+            var resolutionSelectorBuilder = new global::AndroidX.Camera.Core.ResolutionSelector.ResolutionSelector.Builder();
+            resolutionSelectorBuilder.SetResolutionStrategy(new global::AndroidX.Camera.Core.ResolutionSelector.ResolutionStrategy(
+                new global::Android.Util.Size(1280, 720),
+                global::AndroidX.Camera.Core.ResolutionSelector.ResolutionStrategy.FallbackRuleClosestHigherThenLower));
+            var resolutionSelector = resolutionSelectorBuilder.Build();
+
             var analysis = new ImageAnalysis.Builder()
-                ?.SetTargetResolution(new global::Android.Util.Size(1280, 720))
+                ?.SetResolutionSelector(resolutionSelector)
                 ?.SetBackpressureStrategy(ImageAnalysis.StrategyKeepOnlyLatest)
                 ?.Build();
 
