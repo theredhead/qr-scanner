@@ -97,6 +97,20 @@ Open `ScannerZero.slnx` with a recent .NET SDK and an IDE with Avalonia/.NET sup
 
 Platform-specific development requires the corresponding .NET workloads and SDKs.
 
+## Testing
+
+Run the shared unit tests with:
+
+```sh
+dotnet test ScannerZero.Tests/ScannerZero.Tests.csproj
+```
+
+Run the focused core coverage pass with:
+
+```sh
+dotnet test ScannerZero.Tests/ScannerZero.Tests.csproj --configuration Release --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+```
+
 ## Status
 
 This project is young and was originally built to solve a personal annoyance.

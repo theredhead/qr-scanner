@@ -10,9 +10,38 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run unit tests with coverage
+        run: >
+          dotnet test ScannerZero.Tests/ScannerZero.Tests.csproj
+          --configuration Release
+          --settings coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScannerZero-core-coverage
+          path: ScannerZero.Tests/TestResults/**/coverage.cobertura.xml
+          if-no-files-found: error
+          retention-days: 14
+
   android:
     name: Android unsigned APK
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Check out source
@@ -56,6 +85,7 @@ jobs:
   desktop:
     name: Desktop ${{ matrix.rid }}
     runs-on: ${{ matrix.os }}
+    needs: test
     strategy:
       fail-fast: false
       matrix:

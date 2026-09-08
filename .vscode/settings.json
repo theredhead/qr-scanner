@@ -1,0 +1,7 @@
+{
+  "dotnet.defaultSolution": "ScannerZero.Tests.slnx",
+  "dotnet.testWindow.disableBuildOnRefresh": true,
+  "dotnet.testWindow.disableBuildOnRun": false,
+  "dotnet-test-controller.project": "ScannerZero.Tests/ScannerZero.Tests.csproj",
+  "dotnetCoreExplorer.searchpatterns": "ScannerZero.Tests/bin/Debug/net10.0/ScannerZero.Tests.dll"
+}

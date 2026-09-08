@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[ScannerZero]*</Include>
+          <ExcludeByFile>
+            **/*.axaml,
+            **/App.axaml.cs,
+            **/ViewLocator.cs,
+            **/Views/*.cs,
+            **/ViewModels/AboutViewModel.cs,
+            **/ViewModels/MainViewModel.cs,
+            **/ViewModels/ProcessingViewModel.cs,
+            **/ViewModels/ScanResultViewModel.cs,
+            **/ViewModels/ScanViewModel.cs,
+            **/ViewModels/ViewModelBase.cs,
+            **/Services/AppPaths.cs,
+            **/Services/BarcodeDecoder.cs,
+            **/Services/DatabaseService.cs,
+            **/Services/ExternalImageHandler.cs,
+            **/Services/ICameraScanService.cs,
+            **/Services/IScannerStrategy.cs,
+            **/Services/PlatformServices.cs,
+            **/Services/ZxingBarcodeScanStrategy.cs
+          </ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

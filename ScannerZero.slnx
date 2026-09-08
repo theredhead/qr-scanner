@@ -6,5 +6,6 @@
   <Project Path="ScannerZero.iOS/ScannerZero.iOS.csproj">
     <Deploy />
   </Project>
+  <Project Path="ScannerZero.Tests/ScannerZero.Tests.csproj" />
   <Project Path="ScannerZero/ScannerZero.csproj" />
 </Solution>
