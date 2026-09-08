@@ -1,0 +1,37 @@
+using System;
+using System.Threading.Tasks;
+using Avalonia.Controls;
+
+namespace ScannerZero.Services;
+
+public sealed class CodeDetectedEventArgs : EventArgs
+{
+    public required string RawText { get; init; }
+
+    public string? StrategyId { get; init; }
+
+    public string? StrategyName { get; init; }
+
+    public string? CodeType { get; init; }
+
+    /// <summary>A JPEG snapshot of the frame the code was detected in, saved into scan history.</summary>
+    public required byte[] JpegImage { get; init; }
+}
+
+/// <summary>
+/// Platform-specific camera capture + barcode decoding. Implementations own a native camera preview
+/// control and raise <see cref="CodeDetected"/> whenever an enabled strategy finds a code in a captured frame.
+/// </summary>
+public interface ICameraScanService : IDisposable
+{
+    event EventHandler<CodeDetectedEventArgs>? CodeDetected;
+
+    /// <summary>Creates the (platform-native) preview control. Call once and host it in the view tree.</summary>
+    Control CreatePreviewControl();
+
+    Task<bool> RequestPermissionAsync();
+
+    Task StartAsync();
+
+    Task StopAsync();
+}

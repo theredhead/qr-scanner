@@ -1,0 +1,10 @@
+﻿<Solution>
+  <Project Path="ScannerZero.Android/ScannerZero.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="ScannerZero.Desktop/ScannerZero.Desktop.csproj" />
+  <Project Path="ScannerZero.iOS/ScannerZero.iOS.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="ScannerZero/ScannerZero.csproj" />
+</Solution>

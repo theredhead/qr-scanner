@@ -1,18 +1,18 @@
 # ScannerZero
 
-A simple, private, cross-platform QR code scanner.
+A simple, private, cross-platform barcode scanner.
 
-I wanted a QR scanner that just scans QR codes without ads, subscriptions, accounts, tracking, or sending anything to somebody else's server.
+I wanted a barcode scanner that just scans barcodes without ads, subscriptions, accounts, tracking, or sending anything to somebody else's server.
 
 So I made one.
 
 ## What it does
 
-ScannerZero scans and decodes QR codes and shows you the data they actually contain.
+ScannerZero scans and decodes barcodes and shows you the data they actually contain.
 
-Rather than assuming every QR code is a web link, it recognizes common types of data and provides useful actions for them.
+Rather than assuming every barcode is a web link, it recognizes common types of data and provides useful actions for them.
 
-Depending on the contents of the QR code and the platform you're using, you can:
+Depending on the contents of the barcode and the platform you're using, you can:
 
 - Open web links
 - Connect to Wi-Fi networks
@@ -34,7 +34,7 @@ ScannerZero:
 - has no tracking
 - has no advertising
 - has no backend service
-- does not upload scanned QR codes
+- does not upload scanned codes
 - does not upload captured images
 - does not send your scan history anywhere
 
@@ -52,48 +52,48 @@ ScannerZero is built with Avalonia and currently targets:
 
 The same application and scanning logic is shared between platforms, with platform-specific implementations where the operating system requires them.
 
-Some actions depend on what a platform permits. For example, Android can connect directly to a Wi-Fi network described by a QR code. iOS does not provide the same level of automation, so ScannerZero instead lets you copy the SSID and password.
+Some actions depend on what a platform permits. For example, Android can connect directly to a Wi-Fi network described by a barcode. iOS does not provide the same level of automation, so ScannerZero instead lets you copy the SSID and password.
 
-The QR code itself is decoded the same way either way.
+The barcode itself is decoded the same way either way.
 
 ## Scan
 
 The Scan screen keeps things deliberately simple.
 
-The camera viewfinder occupies the upper part of the screen. When a QR code is detected, its decoded contents are displayed below it.
+The camera viewfinder occupies the upper part of the screen. When a barcode is detected, its decoded contents are displayed below it.
 
 The complete value can always be copied, while additional actions are offered when ScannerZero recognizes something useful it can do with the data.
 
 ## History
 
-Scanned QR codes are stored locally and can be revisited from the History tab.
+Scanned barcodes are stored locally and can be revisited from the History tab.
 
 A history entry retains both the decoded data and the image from which it was scanned.
 
-## Why another QR scanner?
+## Why another barcode scanner?
 
-Because I needed to scan a QR code.
+Because I needed to scan a barcode.
 
-The QR scanner built into my phone's camera stopped working, and after trying several alternatives I got tired of scanners filled with advertising and unnecessary nonsense.
+The barcode scanner built into my phone's camera stopped working, and after trying several alternatives I got tired of scanners filled with advertising and unnecessary nonsense.
 
 A few hours later, this existed.
 
 It does considerably more than I originally needed, but it still follows the original requirement:
 
-**Scan QR codes. Show me what's in them. Don't be annoying.**
+**Scan barcodes. Show me what's in them. Don't be annoying.**
 
 ## Building
 
 The repository contains a shared Avalonia application and platform projects for Android, iOS, and desktop.
 
 ```text
-QrScanner/
-QrScanner.Android/
-QrScanner.iOS/
-QrScanner.Desktop/
+ScannerZero/
+ScannerZero.Android/
+ScannerZero.iOS/
+ScannerZero.Desktop/
 ```
 
-Open `QrScanner.slnx` with a recent .NET SDK and an IDE with Avalonia/.NET support.
+Open `ScannerZero.slnx` with a recent .NET SDK and an IDE with Avalonia/.NET support.
 
 Platform-specific development requires the corresponding .NET workloads and SDKs.
 

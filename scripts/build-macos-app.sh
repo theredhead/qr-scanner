@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Packages QrScanner.Desktop as a real .app bundle (with Dock icon), for local testing.
+# Packages ScannerZero.Desktop as a real .app bundle (with Dock icon), for local testing.
 # Usage: scripts/build-macos-app.sh [osx-arm64|osx-x64]
 set -euo pipefail
 
@@ -8,21 +8,21 @@ cd "$(dirname "$0")/.."
 RID="${1:-osx-arm64}"
 CONFIG="Release"
 APP_NAME="ScannerZero"
-BUNDLE_ID="nl.theredhead.qrscanner"
-EXECUTABLE_NAME="QrScanner.Desktop"
+BUNDLE_ID="nl.theredhead.scannerzero"
+EXECUTABLE_NAME="ScannerZero.Desktop"
 
-PUBLISH_DIR="QrScanner.Desktop/bin/$CONFIG/net10.0/$RID/publish"
+PUBLISH_DIR="ScannerZero.Desktop/bin/$CONFIG/net10.0/$RID/publish"
 APP_DIR="dist/$APP_NAME.app"
 
 echo "Publishing self-contained build for $RID..."
-dotnet publish QrScanner.Desktop/QrScanner.Desktop.csproj -c "$CONFIG" -r "$RID" --self-contained -p:UseAppHost=true
+dotnet publish ScannerZero.Desktop/ScannerZero.Desktop.csproj -c "$CONFIG" -r "$RID" --self-contained -p:UseAppHost=true
 
 echo "Assembling $APP_NAME.app..."
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 cp -R "$PUBLISH_DIR/." "$APP_DIR/Contents/MacOS/"
-cp "QrScanner.Desktop/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+cp "ScannerZero.Desktop/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -46,7 +46,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSCameraUsageDescription</key>
-	<string>ScannerZero uses the camera to scan QR codes.</string>
+	<string>ScannerZero uses the camera to scan barcodes.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

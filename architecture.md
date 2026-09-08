@@ -66,7 +66,7 @@ stateDiagram-v2
         [*] --> DisplayAbout: Camera stops
     }
 
-    Scanner --> ScannedResult: QR Detected in camera
+    Scanner --> ScannedResult: Barcode detected in camera
     Scanner --> History: Tap History Button
     Scanner --> About: Tap About Info Button
 

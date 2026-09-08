@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ScannerZero.ViewModels"
+             xmlns:lucide="using:Lucide.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="700"
+             x:Class="ScannerZero.Views.MainView"
+             x:DataType="vm:MainViewModel"
+             DragDrop.AllowDrop="True">
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto">
+        <!-- Main Content Viewport: directly displays CurrentPage via ViewLocator -->
+        <ContentControl Content="{Binding CurrentPage}" />
+
+        <!-- Navigation Bar (Can easily be swapped / restyled as a custom button bar component) -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding IsNavBarVisible}"
+                Background="{DynamicResource SystemRegionBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="8,4">
+            <Grid ColumnDefinitions="*,*,*">
+                <!-- Scan Tab Button -->
+                <Button Grid.Column="0"
+                        Command="{Binding NavigateToScanCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
+                        ToolTip.Tip="Camera Scanner">
+                    <StackPanel Spacing="3" HorizontalAlignment="Center">
+                        <lucide:LucideIcon Kind="Scan" Size="22" />
+                        <TextBlock Text="Scan" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <!-- History Tab Button -->
+                <Button Grid.Column="1"
+                        Command="{Binding NavigateToHistoryCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
+                        ToolTip.Tip="Scan History">
+                    <StackPanel Spacing="3" HorizontalAlignment="Center">
+                        <lucide:LucideIcon Kind="Clock" Size="22" />
+                        <TextBlock Text="History" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Settings Tab Button -->
+                <Button Grid.Column="2"
+                        Command="{Binding NavigateToSettingsCommand}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Padding="8,6"
+                        ToolTip.Tip="Barcode Settings">
+                    <StackPanel Spacing="3" HorizontalAlignment="Center">
+                        <lucide:LucideIcon Kind="Settings" Size="22" />
+                        <TextBlock Text="Settings" FontSize="11" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
