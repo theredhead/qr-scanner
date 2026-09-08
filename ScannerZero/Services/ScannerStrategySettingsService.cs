@@ -11,9 +11,19 @@ public sealed class ScannerStrategySettingsService
     public static ScannerStrategySettingsService Shared { get; } = new();
 
     private readonly object _gate = new();
-    private readonly string _settingsPath = Path.Combine(AppPaths.DataDirectory, "scanner-strategies.json");
+    private readonly string _settingsPath;
     private ScannerStrategySettings? _settings;
     private IReadOnlyList<IScannerStrategy>? _enabledStrategies;
+
+    public ScannerStrategySettingsService()
+        : this(Path.Combine(AppPaths.DataDirectory, "scanner-strategies.json"))
+    {
+    }
+
+    public ScannerStrategySettingsService(string settingsPath)
+    {
+        _settingsPath = settingsPath;
+    }
 
     public IReadOnlyList<ScannerStrategySetting> GetSettings()
     {

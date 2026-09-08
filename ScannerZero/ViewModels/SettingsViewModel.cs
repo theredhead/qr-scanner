@@ -9,7 +9,7 @@ namespace ScannerZero.ViewModels;
 
 public sealed partial class SettingsViewModel : ViewModelBase
 {
-    private readonly ScannerStrategySettingsService _settings = ScannerStrategySettingsService.Shared;
+    private readonly ScannerStrategySettingsService _settings;
     private readonly HistoryViewModel _history;
     private readonly Action _showAbout;
 
@@ -27,10 +27,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    public SettingsViewModel(HistoryViewModel history, Action showAbout)
+    public SettingsViewModel(
+        HistoryViewModel history,
+        Action showAbout,
+        ScannerStrategySettingsService? settings = null)
     {
         _history = history;
         _showAbout = showAbout;
+        _settings = settings ?? ScannerStrategySettingsService.Shared;
         Load();
     }
 

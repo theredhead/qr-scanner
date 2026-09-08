@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ScannerZero.Tests/ScannerZero.Tests.csproj" />
+  <Project Path="ScannerZero/ScannerZero.csproj" />
+</Solution>
