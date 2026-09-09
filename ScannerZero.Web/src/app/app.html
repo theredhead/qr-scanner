@@ -1,0 +1,46 @@
+<sz-site-header [repositoryUrl]="repositoryUrl" />
+
+<main id="top">
+  <sz-hero-section [releasesUrl]="releasesUrl" [repositoryUrl]="repositoryUrl" />
+  <sz-features-section [features]="features" />
+
+  <sz-screenshot-section #screenshotSection [screenshots]="screenshots">
+    <div class="screenshot-steps">
+      @for (screenshot of screenshots; track screenshot.src; let i = $index) {
+        <article
+          #screenshotStep
+          class="screenshot-step"
+          [class.is-active]="screenshotSection.selectedIndex() === i"
+          [attr.data-screenshot-index]="i">
+          <h3>{{ screenshot.title }}</h3>
+          <p>{{ screenshot.text }}</p>
+        </article>
+      }
+    </div>
+  </sz-screenshot-section>
+
+  <sz-link-section
+    sectionId="downloads"
+    headingId="downloads-heading"
+    eyebrow="Downloads"
+    title="Get it."
+    [links]="downloads" />
+
+  <sz-link-section
+    sectionId="demos"
+    headingId="demos-heading"
+    eyebrow="Test pages"
+    title="Try it."
+    variant="raised"
+    [links]="demos" />
+
+  <sz-link-section
+    sectionId="support"
+    headingId="support-heading"
+    eyebrow="Support"
+    title="Get support."
+    variant="muted"
+    [links]="supportLinks" />
+</main>
+
+<sz-site-footer [repositoryUrl]="repositoryUrl" [licenseUrl]="licenseUrl" />

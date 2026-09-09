@@ -1,0 +1,34 @@
+<section class="section screenshots" aria-labelledby="screenshots-heading">
+  <div class="section-heading">
+    <p class="eyebrow">Screenshots</p>
+    <h2 id="screenshots-heading">The results are in, not out.</h2>
+  </div>
+
+  <div class="screenshot-showcase">
+    <div class="phone-stage" aria-label="ScannerZero screenshot preview">
+      <button type="button" class="phone-button previous" (click)="selectPrevious()" aria-label="Previous screenshot">
+        <sz-icon name="chevron-left" />
+      </button>
+
+      <div class="phone-shell">
+        <div class="phone-speaker" aria-hidden="true"></div>
+        <div class="screenshot-carousel">
+          @for (screenshot of screenshots; track screenshot.src; let i = $index) {
+            <figure class="screenshot-slide" [class.is-active]="selectedIndex() === i">
+              <img [src]="screenshot.src" width="1440" height="3120" [alt]="screenshot.alt" loading="lazy">
+              <figcaption>{{ screenshot.title }}</figcaption>
+            </figure>
+          }
+        </div>
+      </div>
+
+      <button type="button" class="phone-button next" (click)="selectNext()" aria-label="Next screenshot">
+        <sz-icon name="chevron-right" />
+      </button>
+    </div>
+
+    <div class="screenshot-content">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</section>

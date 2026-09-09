@@ -111,6 +111,25 @@ Run the focused core coverage pass with:
 dotnet test ScannerZero.Tests/ScannerZero.Tests.csproj --configuration Release --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 ```
 
+## Website
+
+The promotional/support site lives in `ScannerZero.Web`.
+
+```sh
+cd ScannerZero.Web
+npm install
+npm run dev
+```
+
+The site uses Angular SSR for production:
+
+```sh
+npm run build
+npm run start
+```
+
+Docker support is included in `ScannerZero.Web/Dockerfile`.
+
 ## Status
 
 This project is young and was originally built to solve a personal annoyance.

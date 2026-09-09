@@ -1,0 +1,23 @@
+<section
+  class="section link-section"
+  [class.raised]="variant === 'raised'"
+  [class.muted]="variant === 'muted'"
+  [id]="sectionId"
+  [attr.aria-labelledby]="headingId">
+  <div class="section-heading">
+    <p class="eyebrow">{{ eyebrow }}</p>
+    <h2 [id]="headingId">{{ title }}</h2>
+  </div>
+
+  <div class="link-list">
+    @for (link of links; track link.label) {
+      <a class="link-row" [href]="link.href">
+        <span>
+          <strong>{{ link.label }}</strong>
+          <small>{{ link.note }}</small>
+        </span>
+        <sz-icon name="arrow-up-right" />
+      </a>
+    }
+  </div>
+</section>

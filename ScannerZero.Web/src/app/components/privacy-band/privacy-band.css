@@ -1,0 +1,21 @@
+.trust-band {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 28px clamp(18px, 6vw, 88px);
+  color: var(--color-heading);
+  background: var(--color-surface-muted);
+  border-block: 1px solid var(--color-border);
+}
+
+.trust-band p {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 700;
+}
+
+@media (max-width: 880px) {
+  .trust-band {
+    grid-template-columns: 1fr;
+  }
+}

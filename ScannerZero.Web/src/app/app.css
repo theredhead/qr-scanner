@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-page);
+}
+
+.screenshot-steps {
+  display: grid;
+  gap: 18px;
+  padding-block: 10vh;
+}
+
+.screenshot-step {
+  min-height: 54vh;
+  display: grid;
+  align-content: center;
+  padding: 24px;
+  border-left: 3px solid var(--color-border);
+}
+
+.screenshot-step.is-active {
+  border-color: var(--color-accent);
+}
+
+.screenshot-step h3 {
+  margin: 0 0 12px;
+  font-size: clamp(1.55rem, 4vw, 3.2rem);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.screenshot-step p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.6;
+}
+
+@media (max-width: 880px) {
+  .screenshot-steps {
+    padding-block: 0;
+  }
+
+  .screenshot-step {
+    min-height: auto;
+  }
+}

@@ -1,0 +1,24 @@
+<section class="section" aria-labelledby="features-heading">
+  <div class="section-heading">
+    <p class="eyebrow">What it does</p>
+    <h2 id="features-heading">Scan. Show. Save. Simple</h2>
+  </div>
+
+  <div class="feature-marquee" aria-label="ScannerZero capabilities">
+    <div class="feature-track">
+      @for (feature of features; track feature.title) {
+        <article class="feature-card">
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.text }}</p>
+        </article>
+      }
+
+      @for (feature of features; track feature.title) {
+        <article class="feature-card" aria-hidden="true">
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.text }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
